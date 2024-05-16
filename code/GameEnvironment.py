@@ -1,7 +1,7 @@
 from Maze import Maze
 from SolverBot import SolverBot
 
-max_episodes_number = 2
+max_episodes_number = 1000
 class GameEnvironment:
     def __init__(self, width, height, max_episodes=max_episodes_number):
         self.maze = Maze(width, height)
