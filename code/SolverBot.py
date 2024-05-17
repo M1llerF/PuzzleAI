@@ -55,13 +55,21 @@ class SolverBot:
 
     def get_reward(self, new_position):
         """ Calculate the reward for moving to a new position."""
+        maze_size = self.maze.width * self.maze.height
+        #print("Maze size:", maze_size)
+        
         if new_position == self.maze.end:
-            return 1000
+            # Reward for reaching the goal, scaled by maze size
+            return 1000 + maze_size
         if not self.maze.is_valid_position(*new_position):
-            return -10
+            # Penalty for hitting a wall, scaled by maze size
+            return -10 * (maze_size // 100)
         if new_position in self.visited_positions:
-            return -5
-        return -1
+            # Penalty for revisiting a position, scaled by maze size
+            return -5 * (maze_size // 100)
+        
+        # Small penalty for each move, scaled by maze size
+        return -1 * (maze_size // 100)
 
     def update_q_value(self, action, reward, new_state):
         if self.state not in self.q_table:
@@ -101,7 +109,7 @@ class SolverBot:
 
     def run_episode(self):
         """Run one episode of the bot solving the maze."""
-        #self.maze.display_with_bot(self.position)  # Initial display
+        self.maze.display_with_bot(self.position)  # Initial display
         self.cumulative_reward = 0
         while self.position != self.maze.end:
             action = self.choose_action()
@@ -117,7 +125,7 @@ class SolverBot:
             self.position = new_position
             self.state = new_state
 
-            #self.maze.display_with_bot(self.position)
+            self.maze.display_with_bot(self.position)
         
         self.save_q_table()
         print(self.total_steps, "steps taken to reach the goal. Reward is", self.cumulative_reward)
@@ -125,12 +133,12 @@ class SolverBot:
 
     def save_q_table(self):
         # Adapt this method to handle dictionary saving if necessary
-        with open('q_table.pkl', 'wb') as f:
+        with open('code\q_table.pkl', 'wb') as f:
             pickle.dump(self.q_table, f)
     
     def load_q_table(self):
         try:
-            with open('q_table.pkl', 'rb') as f:
+            with open('code\q_table.pkl', 'rb') as f:
                 return pickle.load(f)
         except FileNotFoundError:
             return {}

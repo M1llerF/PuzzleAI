@@ -1,11 +1,13 @@
 from Maze import Maze
 from SolverBot import SolverBot
 
-max_episodes_number = 1000
+max_episodes_number = 5
 class GameEnvironment:
     def __init__(self, width, height, max_episodes=max_episodes_number):
-        self.maze = Maze(width, height)
-        self.maze.setup_simple_maze()  # Ensure this sets start and goal
+        # self.maze = Maze(width, height)
+        # self.maze.setup_simple_maze()  # Ensure this sets start and goal
+        self.maze = Maze(min_width=5, max_width=10, min_height=10, max_height=10)
+        self.maze.setup_simple_maze()
         self.maze_solver_bot = SolverBot(self.maze)
         self.is_running = False
         self.max_episodes = max_episodes
@@ -30,6 +32,11 @@ class GameEnvironment:
             self.reset_environment()  # Reset for the next episode
     
     def reset_environment(self):
+        self.min_width = 5
+        self.min_height = 5
+        self.max_width = 8
+        self.max_height = 8
+        self.maze = Maze(self.min_width, self.max_width, self.min_height, self.max_height)
         self.maze.setup_simple_maze()  # Re-setup the maze to its initial configuration
         self.maze_solver_bot.reset_bot()  # Reset bot's position and state
     
@@ -40,5 +47,5 @@ class GameEnvironment:
 
 # Ensure this block is present
 if __name__ == "__main__":
-    game_env = GameEnvironment(10, 10, max_episodes=max_episodes_number)
+    game_env = GameEnvironment(5, 5, max_episodes=max_episodes_number)
     game_env.start_game()
