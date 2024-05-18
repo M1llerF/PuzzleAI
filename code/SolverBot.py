@@ -12,7 +12,7 @@ class SolverBot:
         self.position = maze.start
         self.state = self.calculate_state()
         self.total_steps = 0
-        self.cumulative_reward = 0
+        self.cumulative_reward_for_debugging = 0
         self.times_bot_hit_wall = 0
         self.times_bot_revisited_squares = 0
         self.non_repeating_steps_taken = 0
@@ -67,16 +67,16 @@ class SolverBot:
         
         if new_position == self.maze.end:
             # Reward for reaching the goal, scaled by optimal path size
-            self.cumulative_reward += 1000
+            self.cumulative_reward_for_debugging += 1000
             return 1000 + optimal_length # Was + maze_size
         if not self.maze.is_valid_position(*new_position):
             # Penalty for hitting a wall, scaled by optimal path size
-            self.cumulative_reward += -100
+            self.cumulative_reward_for_debugging += -100
             self.times_bot_hit_wall += 1
             return -100 * (optimal_length // 10)
         if new_position in self.visited_positions:
             # Penalty for revisiting a position, scaled by optimal path size
-            self.cumulative_reward += -10
+            self.cumulative_reward_for_debugging += -10
             self.times_bot_revisited_squares += 1
             return -10 * (optimal_length // 10)
         if new_position not in self.optimal_path:
@@ -84,7 +84,7 @@ class SolverBot:
             return -20 * (optimal_length // 10)
 
         # Small penalty for each move, scaled by maze size
-        self.cumulative_reward += -1
+        self.cumulative_reward_for_debugging += -1
         self.non_repeating_steps_taken += 1
         return -1 * (optimal_length // 100)
 
@@ -117,7 +117,11 @@ class SolverBot:
     def run_episode(self):
         """Run one episode of the bot solving the maze."""
         #self.maze.display_with_bot(self.position)  # Initial display
-        self.cumulative_reward = 0
+        self.cumulative_reward_for_debugging = 0  # Reset cumulative reward at the start of each episode
+        self.times_hit_wall = 0
+        self.times_revisited_square = 0
+        self.non_repeated_steps = 0
+        step_limit = 1000  # Define a reasonable step limit
         while self.position != self.maze.end:
             action = self.choose_action()
             new_position = self.calculate_next_position(action)
@@ -126,10 +130,12 @@ class SolverBot:
                 #print("Invalid move attempted.")
                 continue
             reward = self.get_reward(new_position)
-            if(self.total_steps > 10000):
+            if(self.total_steps > step_limit):
+                reward -= 1000
+                self.cumulative_reward_for_debugging += reward # Include penalty
                 break
             
-            #self.cumulative_reward += reward
+            #self.cumulative_reward_for_debugging += reward
             self.visited_positions[self.position] = self.visited_positions.get(self.position, 0) + 1
             new_state = self.calculate_state()
             self.update_q_value(action, reward, new_state)
@@ -137,20 +143,20 @@ class SolverBot:
             self.state = new_state
 
             #self.maze.display_with_bot(self.position)
-        if(self.total_steps > 10000):
+        if(self.total_steps > step_limit):
             print("Resetting Bot")
             self.total_steps = 0
             SolverBot.reset_bot(self)
         else:
-            print("Saving Q-table. Total steps: ", self.total_steps, "Reward: ", self.cumulative_reward)
+            print("Saving Q-table. Total steps: ", self.total_steps, "Reward: ", self.cumulative_reward_for_debugging)
             # For debugging:
             #print("Times Bot Hit Wall: ", self.times_bot_hit_wall, "| Times Bot revisited a square: ", self.times_bot_revisited_squares, "| Amount of non-repeated steps taken: ", self.non_repeating_steps_taken)
             self.save_q_table()
-        #print(self.total_steps, "steps taken to reach the goal. Reward is", self.cumulative_reward)
+        #print(self.total_steps, "steps taken to reach the goal. Reward is", self.cumulative_reward_for_debugging)
         #print("Episode completed. Q-table saved.")
 
         with open('rewards.txt', 'a') as f:
-            f.write(f"{self.cumulative_reward}\n")
+            f.write(f"{self.cumulative_reward_for_debugging}\n")
 
     def save_q_table(self):
         # Adapt this method to handle dictionary saving if necessary
@@ -169,7 +175,7 @@ class SolverBot:
         self.position = self.maze.start
         self.state = self.calculate_state()
         self.visited_positions.clear()
-        self.cumulative_reward = 0
+        self.cumulative_reward_for_debugging = 0
         self.total_steps = 0
         self.times_bot_hit_wall = 0
         self.times_bot_revisited_squares = 0
