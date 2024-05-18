@@ -51,45 +51,70 @@ class Maze:
             raise ValueError("Invalid start position")
     
     def set_goal(self, x, y):
+        #print(f"x: {x}, y: {y}")
         if self.is_valid_position(x, y):
             self.end = (x, y)
         else:
             raise ValueError("Invalid goal position")
-    
+
     def setup_simple_maze(self):
-        self.width = 6
-        self.height = 6
-        self.grid = [[1 for _ in range(self.width)] for _ in range(self.height)]
-        
-        def dfs(x, y):
-            directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-            random.shuffle(directions)
-            for dx, dy in directions:
-                nx, ny = x + 2 * dx, y + 2 * dy
-                if 1 <= nx < self.height - 1 and 1 <= ny < self.width - 1 and self.grid[nx][ny] == 1:
-                    self.grid[x + dx][y + dy] = 0
-                    self.grid[nx][ny] = 0
-                    dfs(nx, ny)
-
-        start_x = random.randrange(1, self.height - 1, 2)
-        start_y = random.randrange(1, self.width - 1, 2)
-        self.grid[start_x][start_y] = 0
-        dfs(start_x, start_y)
-
-        start_positions = [(x, y) for x in range(1, self.height - 1) for y in range(1, self.width - 1) if self.grid[x][y] == 0]
-        self.start = random.choice(start_positions)
-        
-        # Ensure the goal is at least minimum_distance away from the start
-        valid_end_positions = [pos for pos in start_positions if np.linalg.norm(np.array(pos) - np.array(self.start)) >= self.minimum_distance]
-        
-        if valid_end_positions:
-            self.end = random.choice(valid_end_positions)
-        else:
-            # If no valid end positions, fallback to the farthest position
-            self.end = max(start_positions, key=lambda pos: np.linalg.norm(np.array(pos) - np.array(self.start)))
+        self.grid = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+            [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ]
+        self.start = (1, 1)
+        self.end = (13, 13)
 
         self.set_start(*self.start)
         self.set_goal(*self.end)
+
+    
+    # def setup_simple_maze(self):
+
+        # self.grid = [[1 for _ in range(self.width)] for _ in range(self.height)]
+        
+        # def dfs(x, y):
+        #     directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        #     random.shuffle(directions)
+        #     for dx, dy in directions:
+        #         nx, ny = x + 2 * dx, y + 2 * dy
+        #         if 1 <= nx < self.height - 1 and 1 <= ny < self.width - 1 and self.grid[nx][ny] == 1:
+        #             self.grid[x + dx][y + dy] = 0
+        #             self.grid[nx][ny] = 0
+        #             dfs(nx, ny)
+
+        # start_x = random.randrange(1, self.height - 1, 2)
+        # start_y = random.randrange(1, self.width - 1, 2)
+        # self.grid[start_x][start_y] = 0
+        # dfs(start_x, start_y)
+
+        # start_positions = [(x, y) for x in range(1, self.height - 1) for y in range(1, self.width - 1) if self.grid[x][y] == 0]
+        # self.start = random.choice(start_positions)
+        
+        # # Ensure the goal is at least minimum_distance away from the start
+        # valid_end_positions = [pos for pos in start_positions if np.linalg.norm(np.array(pos) - np.array(self.start)) >= self.minimum_distance]
+        
+        # if valid_end_positions:
+        #     self.end = random.choice(valid_end_positions)
+        # else:
+        #     # If no valid end positions, fallback to the farthest position
+        #     self.end = max(start_positions, key=lambda pos: np.linalg.norm(np.array(pos) - np.array(self.start)))
+
+        # self.set_start(*self.start)
+        # self.set_goal(*self.end)
 
 
     def display_with_bot(self, bot_position):
@@ -112,7 +137,7 @@ class Maze:
         self.ax.set_xticklabels([])
         self.ax.set_yticklabels([])
 
-        plt.pause(0.0001)  # Pause briefly to update the plot. Default is 0.01 seconds.
+        plt.pause(0.1)  # Pause briefly to update the plot. Default is 0.01 seconds.
     
     def finalize_display(self):
         plt.ioff()  # Turn off interactive mode
