@@ -54,7 +54,7 @@ class SolverBot:
     #! Could be causing problems for bigger mazes
     def pos_to_state(self, position):
         """Convert position to a state index for simplicity in smaller mazes"""
-        return position[0] * self.maze.width + position[1]
+        return (position[0], position[1])
     
     def calculate_state(self):
         """Calculate the state representation based on the current position and layout"""
