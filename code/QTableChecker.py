@@ -47,7 +47,7 @@ class QTableChecker:
             print(f"Rank {i+1}: State {state}, Best Action: {best_action}, Best Q-value: {best_q_value}")
 
 # Example usage:
-q_checker = QTableChecker('code/q_table.pkl')
+q_checker = QTableChecker('code/NonCodeFiles/q_table.pkl')
 q_checker.print_q_table_summary()
 # q_checker.print_state_q_values(state)
 # q_checker.get_best_action_for_state(state)

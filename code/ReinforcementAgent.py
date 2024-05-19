@@ -64,8 +64,8 @@ class RewardSystem:
             return -100 * (optimal_length // 10)
         if new_position in visited_positions: # Revisited a position
             return -10 * (optimal_length // 10)
-        if new_position not in optimal_path: # Moved away from the optimal path
-            return -20 * (optimal_length // 10)
+        if new_position in optimal_path: # Moved away from the optimal path
+            return 20 * (optimal_length // 10)
         return -1 * (optimal_length // 100) # Small penalty for each move
     
     def update_rewards(self, reward):

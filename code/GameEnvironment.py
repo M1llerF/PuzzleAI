@@ -3,7 +3,7 @@ from SolverBot import SolverBot, BotConfig
 from ReinforcementAgent import QLearning, RewardSystem
 from HeatMapViewer import HeatMapViewer
 
-max_episodes_number = 10
+max_episodes_number = 1000
 
 class EnvironmentSetup:
     def __init__(self, width, height):
