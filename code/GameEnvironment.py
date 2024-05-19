@@ -1,7 +1,6 @@
 from Maze import Maze
 from SolverBot import SolverBot, BotConfig
 from ReinforcementAgent import QLearning, RewardSystem
-from HeatMapViewer import HeatMapViewer
 
 max_episodes_number = 1000
 

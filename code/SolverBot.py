@@ -46,6 +46,11 @@ class SolverBot:
         self.optimal_length = len(self.optimal_path)
         self.reset_bot()
     
+    def check_goal_in_sight(self, wall_distances):
+        """Check if the goal is in sight based on wall distances"""
+        return any(self.maze.end in [(self.position[0] + dx * distance, self.position[1] + dy * distance)
+                   for (dx, dy), distance in zip([(-1, 0), (1, 0), (0, -1), (0, 1)], wall_distances.values())])
+
     #! Could be causing problems for bigger mazes
     def pos_to_state(self, position):
         """Convert position to a state index for simplicity in smaller mazes"""
@@ -54,10 +59,10 @@ class SolverBot:
     def calculate_state(self):
         """Calculate the state representation based on the current position and layout"""
         position_index = self.pos_to_state(self.position)
-        wall_distances = self.detect_walls()
+        wall_distances, goal_direction = self.detect_walls()
         visited = self.q_learning.visited_positions.get(self.position, 0)
         distance_to_goal = np.linalg.norm(np.array(self.position) - np.array(self.maze.end))
-        return (position_index, tuple(wall_distances.values()), visited, distance_to_goal)
+        return (position_index, tuple(wall_distances.values()), visited, distance_to_goal, goal_direction)
     
     def detect_walls(self):
         """Detect the distance to walls in all directions"""
@@ -68,6 +73,7 @@ class SolverBot:
             'Right': (0, 1),
         }
         wall_distances = {}
+        goal_direction = None
         for direction, (dx, dy) in directions.items():
             distance = 0
             current_position = self.position
@@ -76,6 +82,9 @@ class SolverBot:
                 next_position = (current_position[0] + dx, current_position[1] + dy)
                 # Make sure next_position is within the maze boundaries
                 if 0 <= next_position[0] < self.maze.height and 0 <= next_position[1] < self.maze.width:
+                    if next_position == self.maze.end:
+                            goal_direction = direction
+                            break # Goal is in sight, stop checking further
                     if self.maze.is_valid_position(next_position[0], next_position[1]):
                         current_position = next_position
                         distance += 1
@@ -84,7 +93,7 @@ class SolverBot:
                 else:
                     break  # Out of bounds, break the loop
             wall_distances[direction] = distance
-        return wall_distances
+        return wall_distances, goal_direction
     
     def calculate_next_position(self, action):
         """Calculate the next position based on the current action"""
