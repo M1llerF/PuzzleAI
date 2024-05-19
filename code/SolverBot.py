@@ -104,9 +104,9 @@ class SolverBot:
         return (self.position[0] + direction[0], self.position[1] + direction[1])
 
     def run_episode(self):
-        print("Running episode...")
+        #print("Running episode...")
         """Run one episode of the bot solving the maze."""
-        self.maze.display_with_bot(self.position)  # Initial display
+        #self.maze.display_with_bot(self.position)  # Initial display
         step_limit = 3000 * self.optimal_length  # Define a reasonable step limit
         while self.position != self.maze.end:
             reward = 0
@@ -114,10 +114,15 @@ class SolverBot:
             new_position = self.calculate_next_position(action)
             self.statistics.total_steps = self.statistics.times_revisited_squares + self.statistics.non_repeating_steps_taken
             if not self.maze.is_valid_position(new_position[0], new_position[1]):
-                reward += -100
+                reward += -1000
+                #print("Hit a wall!")
                 self.statistics.times_hit_wall += 1
+                new_state = self.calculate_state()
+                self.q_learning.update_q_value(self.state, action, reward, new_state)
+                self.total_reward += reward
                 continue
-            reward = self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions())
+            #print("Reward: ", reward)
+            reward += self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions())
 
             #! Ugly:
             if(self.statistics.total_steps > step_limit):
@@ -134,7 +139,7 @@ class SolverBot:
             self.q_learning.update_q_value(self.state, action, reward, new_state)
             self.position = new_position
             self.state = new_state
-            self.maze.display_with_bot(self.position) # Optional display     
+            #self.maze.display_with_bot(self.position) # Optional display     
         self.q_learning.save_q_table()
         self.save_heatmap_data()
 

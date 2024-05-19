@@ -2,7 +2,7 @@ from Maze import Maze
 from SolverBot import SolverBot, BotConfig
 from ReinforcementAgent import QLearning, RewardSystem
 
-max_episodes_number = 2
+max_episodes_number = 11560
 class EnvironmentSetup:
     def __init__(self, width, height):
         self.maze = Maze(width, height)
@@ -40,10 +40,10 @@ class GameEnvironment:
             max_episodes_number / 2
 
         while self.episode_count < self.max_episodes:
-            if(self.episode_count % 1 == 0):
+            if(self.episode_count % 100 == 0):
                 print(f"Running episode {self.episode_count + 1}")
             if self.maze.is_solvable():
-                print("Maze is solvable, running episode...")
+                #print("Maze is solvable, running episode...")
                 self.maze_solver_bot.run_episode()
             else:
                 print("Maze is not solvable, resetting...")
@@ -51,6 +51,7 @@ class GameEnvironment:
             self.episode_count += 1
             self.maze_solver_bot.reset_bot()
             self.env_setup.reset_environment()  # Reset for the next episode
+
     
     def stop_game(self):
         """Stop the game loop."""
