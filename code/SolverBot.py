@@ -91,16 +91,10 @@ class SolverBot:
         direction_map = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}
         direction = direction_map[action]
         return (self.position[0] + direction[0], self.position[1] + direction[1])
-    
-    def reset_bot(self):
-        """Reset the bot's position and state"""
-        self.position = self.maze.start
-        self.state = self.calculate_state()
-        self.q_learning.reset()
 
     def run_episode(self):
         """Run one episode of the bot solving the maze."""
-        self.maze.display_with_bot(self.position)  # Initial display
+        #self.maze.display_with_bot(self.position)  # Initial display
         step_limit = 3000 * self.optimal_length  # Define a reasonable step limit
         while self.position != self.maze.end:
             action = self.q_learning.choose_action(self.state)
@@ -111,18 +105,21 @@ class SolverBot:
             reward = self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions())
             #! Ugly:
             if(self.statistics.total_steps > step_limit):
+                self.print("Step limit reached.")
                 reward -= 1000
                 self.cumulative_reward_for_debugging += reward # Include penalty
                 break
             
             self.statistics.cumulative_reward_for_debugging += reward
             self.q_learning.visited_positions[self.position] = self.q_learning.visited_positions.get(self.position, 0) + 1
+            self.statistics.update_visited_positions(self.position)
             new_state = self.calculate_state()
             self.q_learning.update_q_value(self.state, action, reward, new_state)
             self.position = new_position
             self.state = new_state
-            self.maze.display_with_bot(self.position) # Optional display     
+            #self.maze.display_with_bot(self.position) # Optional display     
         self.q_learning.save_q_table()
+        self.save_heatmap_data()
 
         # ! Make this a optional feature
         with open('code/NonCodeFiles/SimulationRewards.txt', 'a') as f:
@@ -131,3 +128,39 @@ class SolverBot:
         if self.statistics.total_steps > step_limit:
             self.statistics.total_steps = 0
             self.reset_bot()
+
+    def reset_bot(self):
+        """Reset the bot's position and state"""
+        self.position = self.maze.start
+        self.state = self.calculate_state()
+        self.q_learning.reset()
+
+    def save_heatmap_data(self):
+        """Save the heatmap data to a file."""
+        #print("Saving heatmap data...")
+        heatmap_data = self.statistics.get_visited_positions()
+        
+        # Read existing data
+        existing_data = {}
+        try:
+            with open('code/NonCodeFiles/HeatmapData.txt', 'r') as f:
+                for line in f:
+                    x, y, count = map(int, line.strip().split(','))
+                    existing_data[(x, y)] = count
+        except FileNotFoundError:
+            # If the file doesn't exist, we can skip reading existing data
+            pass
+        
+        # Update existing data with new data
+        for position, count in heatmap_data.items():
+            if position in existing_data:
+                existing_data[position] += count
+            else:
+                existing_data[position] = count
+        
+        # Write the combined data back to the file
+        with open('code/NonCodeFiles/HeatmapData.txt', 'w') as f:
+            for position, count in existing_data.items():
+                f.write(f"{position[0]},{position[1]},{count}\n")
+        
+       # print(f"Heatmap data saved successfully.")

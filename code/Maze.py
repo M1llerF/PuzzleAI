@@ -2,6 +2,8 @@ from collections import deque
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import matplotlib.colors as mcolors
+import mplcursors
 class Maze:
     def __init__(self, width, height, start=None, end=None):
         self.width = width
@@ -61,18 +63,18 @@ class Maze:
         self.grid = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1],
             [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
             [1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
             [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
             [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
             [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
             [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1],
             [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         ]
         self.start = (1, 1)
@@ -139,6 +141,114 @@ class Maze:
 
         plt.pause(0.1)  # Pause briefly to update the plot. Default is 0.01 seconds.
     
+
+    def display_with_heatmap(self, heatmap_file):
+        """ Display the maze with the bot's current position highlighted. """
+        self.ax.cla()  # Clear the current axis to prepare for a new drawing
+        color_grid = np.array(self.grid, dtype=int)
+        color_grid[self.start] = 2
+        color_grid[self.end] = 3
+        # Using a simple colormap and normalization
+        
+        cmap = plt.cm.tab20c
+        norm = plt.Normalize(0, 4)
+        
+        self.ax.imshow(color_grid, cmap=cmap, norm=norm, interpolation='none')
+        
+        self.ax.set_xticks(np.arange(-.5, self.width, 1), minor=True)
+        self.ax.set_yticks(np.arange(-.5, self.height, 1), minor=True)
+        self.ax.grid(which='minor', color='w', linestyle='-', linewidth=2)
+        self.ax.set_xticklabels([])
+        self.ax.set_yticklabels([])
+
+        """Display the maze with a heatmap overlay from the heatmap file."""
+    # Display the maze with a heatmap overlay from the heatmap file
+        heatmap = np.zeros((self.height, self.width))
+        total_visits = 0
+        try:
+            with open(heatmap_file, 'r') as f:
+                for line in f:
+                    x, y, count = map(int, line.strip().split(','))
+                    heatmap[x, y] = count
+                    total_visits += count
+        except IOError as e:
+            print(f"Error reading heatmap file: {e}")
+
+        # Normalize percentages
+        percentages = (heatmap / total_visits) * 100
+
+        # Overlay the heatmap only on visited positions
+        for x in range(self.height):
+            for y in range(self.width):
+                if heatmap[x, y] > 0:
+                    percentage = percentages[x, y]
+                    color_value = percentage / 2 # Normalize percentages to the 0%-2% range
+                    rect = plt.Rectangle((y - 0.5, x - 0.5), 1, 1, color=plt.cm.hot(color_value), alpha=0.6)
+                    self.ax.add_patch(rect)
+                    font_size = max(8, 12 - len(f"{int(percentage)}%"))  # Adjust font size based on the number of digits
+                    self.ax.text(y, x, f"{percentage:.2f}", color="black", ha='center', va='center', fontsize=font_size)
+
+            # Highlight start and end positions
+            self.ax.scatter(self.start[1], self.start[0], color='blue', s=100, edgecolor='black', label='Start')
+            self.ax.scatter(self.end[1], self.end[0], color='green', s=100, edgecolor='black', label='End')
+
+
+        plt.ioff()
+        plt.show()
+
+    # def display_with_heatmap(self, heatmap_file):
+        # """Display the maze with a heatmap overlay from the heatmap file."""
+        # heatmap = np.zeros((self.height, self.width))
+        # try:
+        #     with open(heatmap_file, 'r') as f:
+        #         for line in f:
+        #             x, y, count = map(int, line.strip().split(','))
+        #             heatmap[x, y] = count
+        # except IOError as e:
+        #     print(f"Error reading heatmap file: {e}")
+
+    #     self.ax.cla()  # Clear the current axis to prepare for a new drawing
+    #     color_grid = np.array(self.grid, dtype=int)
+
+    #     # Highlight start and end positions
+    #     color_grid[self.start[0], self.start[1]] = 2
+    #     color_grid[self.end[0], self.end[1]] = 3
+
+    #     # Create a custom colormap
+    #     cmap = plt.cm.spring
+    #     heatmap_cmap = plt.cm.binary
+
+    #     # Create a mask for the walls
+    #     mask = np.array(self.grid) == 1
+
+    #     # Overlay the heatmap values on the color grid
+    #     for x in range(self.height):
+    #         for y in range(self.width):
+    #             if self.grid[x][y] == 0:
+    #                 color_grid[x, y] = 0  # Open paths are 0
+    #             if heatmap[x, y] > 0:
+    #                 color_grid[x, y] = 4 + heatmap[x, y]  # Offset by 4 to distinguish from start, end, and walls
+
+    #     norm = plt.Normalize(vmin=0, vmax=4 + int(np.max(heatmap)))
+
+    #     self.ax.imshow(color_grid, cmap=cmap, norm=norm, interpolation='none')
+    #     self.ax.imshow(heatmap, cmap=heatmap_cmap, alpha=0.6, interpolation='none')
+
+    #     # Highlight start and end positions
+    #     self.ax.scatter(self.start[1], self.start[0], color='blue', s=100, edgecolor='black', label='Start')
+    #     self.ax.scatter(self.end[1], self.end[0], color='green', s=100, edgecolor='black', label='End')
+
+    #     self.ax.set_xticks(np.arange(-.5, self.width, 1), minor=True)
+    #     self.ax.set_yticks(np.arange(-.5, self.height, 1), minor=True)
+    #     self.ax.grid(which='minor', color='w', linestyle='-', linewidth=2)
+    #     self.ax.set_xticklabels([])
+    #     self.ax.set_yticklabels([])
+
+    #     plt.ioff()
+    #     plt.show()
+
+        
     def finalize_display(self):
-        plt.ioff()  # Turn off interactive mode
+        """Finalize the display by turning off interactive mode and showing the plot."""
+        plt.ioff()
         plt.show()
