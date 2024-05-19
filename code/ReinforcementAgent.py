@@ -69,17 +69,32 @@ class RewardSystem:
     
     def get_reward(self, new_position, optimal_path, optimal_length, visited_positions):
         """Calculate the reward for moving to a new position."""
+        reward = 0
+
         if new_position == self.maze.end: # Reached the goal
-            return 1000 + optimal_length
+            reward += 1000 * (optimal_length // 10)
+
         if not self.maze.is_valid_position(*new_position): # Hit a wall
-            return -100 * (optimal_length // 10)
+            reward += -100 * (optimal_length // 10)
+
         if new_position in visited_positions: # Revisited a position
-            return -10 * (optimal_length // 10)
-        if new_position in optimal_path: # Moved in from the optimal path
-            return 5 * (optimal_length // 10)
+            if new_position in optimal_path:
+                reward += -10 * (optimal_length // 10)
+            else:
+                reward += -15 * (optimal_length // 10)
+
+        if new_position in optimal_path: # Moved in the optimal path
+            reward += 5 * (optimal_length // 10)
+
         if self.is_goal_in_sight(new_position): # Sees the goal
-            return 50
-        return -1 * (optimal_length // 100) # Small penalty for each move
+            if new_position in visited_positions:
+                reward += 5 # Small reward for revisiting a location where it sees the goal
+            else:
+                reward += 50 # Large reward for seeing the goal when in a new location
+
+        reward += -1 * (optimal_length // 100) # Small penalty for each move
+        
+        return reward
     
     def is_goal_in_sight(self, position):
         """Check if the goal is in sight from the current position."""

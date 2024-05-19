@@ -39,7 +39,7 @@ class QTableChecker:
             print(f"State {state} not found in Q-table.")
             return None
     
-    def print_top_states(self, top_n=10):
+    def print_top_states(self, top_n=1000):
         sorted_states = sorted(self.q_table.keys(), key=lambda state: np.max(self.q_table[state]), reverse=True)
         for i, state in enumerate(sorted_states[:top_n]):
             best_action = np.argmax(self.q_table[state])
@@ -51,4 +51,4 @@ q_checker = QTableChecker('code/NonCodeFiles/q_table.pkl')
 q_checker.print_q_table_summary()
 # q_checker.print_state_q_values(state)
 # q_checker.get_best_action_for_state(state)
-q_checker.print_top_states(top_n=10)
+q_checker.print_top_states(top_n=1000)

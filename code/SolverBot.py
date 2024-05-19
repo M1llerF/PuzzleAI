@@ -40,6 +40,7 @@ class SolverBot:
         self.reward_system = reward_system
         self.config = config
         self.statistics = BotStatistics()
+        self.total_reward = 0
         self.position = maze.start
         self.state = self.calculate_state()
         self.optimal_path = Pathfinding.a_star_search(maze, maze.start, maze.end)
@@ -51,7 +52,6 @@ class SolverBot:
         return any(self.maze.end in [(self.position[0] + dx * distance, self.position[1] + dy * distance)
                    for (dx, dy), distance in zip([(-1, 0), (1, 0), (0, -1), (0, 1)], wall_distances.values())])
 
-    #! Could be causing problems for bigger mazes
     def pos_to_state(self, position):
         """Convert position to a state index for simplicity in smaller mazes"""
         return (position[0], position[1])
@@ -64,6 +64,7 @@ class SolverBot:
         distance_to_goal = np.linalg.norm(np.array(self.position) - np.array(self.maze.end))
         return (position_index, tuple(wall_distances.values()), visited, distance_to_goal, goal_direction)
     
+    #! BOT KEEPS TRYING TO MOVE INTO WALLS
     def detect_walls(self):
         """Detect the distance to walls in all directions"""
         directions = {
@@ -99,40 +100,47 @@ class SolverBot:
         """Calculate the next position based on the current action"""
         direction_map = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}
         direction = direction_map[action]
+        #print(self.position[0] + direction[0], self.position[1] + direction[1])
         return (self.position[0] + direction[0], self.position[1] + direction[1])
 
     def run_episode(self):
+        print("Running episode...")
         """Run one episode of the bot solving the maze."""
-        #self.maze.display_with_bot(self.position)  # Initial display
+        self.maze.display_with_bot(self.position)  # Initial display
         step_limit = 3000 * self.optimal_length  # Define a reasonable step limit
         while self.position != self.maze.end:
+            reward = 0
             action = self.q_learning.choose_action(self.state)
             new_position = self.calculate_next_position(action)
             self.statistics.total_steps = self.statistics.times_revisited_squares + self.statistics.non_repeating_steps_taken
             if not self.maze.is_valid_position(new_position[0], new_position[1]):
+                reward += -100
+                self.statistics.times_hit_wall += 1
                 continue
             reward = self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions())
+
             #! Ugly:
             if(self.statistics.total_steps > step_limit):
                 self.print("Step limit reached.")
                 reward -= 1000
-                self.cumulative_reward_for_debugging += reward # Include penalty
+                self.total_reward += reward # Include penalty
                 break
             
-            self.statistics.cumulative_reward_for_debugging += reward
+            self.total_reward += reward
+            # print(f"Reward: {reward}")
             self.q_learning.visited_positions[self.position] = self.q_learning.visited_positions.get(self.position, 0) + 1
             self.statistics.update_visited_positions(self.position)
             new_state = self.calculate_state()
             self.q_learning.update_q_value(self.state, action, reward, new_state)
             self.position = new_position
             self.state = new_state
-            #self.maze.display_with_bot(self.position) # Optional display     
+            self.maze.display_with_bot(self.position) # Optional display     
         self.q_learning.save_q_table()
         self.save_heatmap_data()
 
         # ! Make this a optional feature
         with open('code/NonCodeFiles/SimulationRewards.txt', 'a') as f:
-            f.write(f"{self.statistics.cumulative_reward_for_debugging}\n")
+            f.write(f"{self.total_reward}\n")
 
         if self.statistics.total_steps > step_limit:
             self.statistics.total_steps = 0
@@ -140,7 +148,10 @@ class SolverBot:
 
     def reset_bot(self):
         """Reset the bot's position and state"""
+        #print("Resetting bot...")
         self.position = self.maze.start
+        self.statistics.reset()
+        self.total_reward = 0
         self.state = self.calculate_state()
         self.q_learning.reset()
 
