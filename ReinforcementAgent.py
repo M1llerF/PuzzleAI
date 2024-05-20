@@ -83,7 +83,6 @@ class RewardSystem:
             if on_optimal_path and not recently_visited:
                 reward += 3 * (optimal_length // 10) # Encourage following optimal path
             elif not on_optimal_path and recently_visited:
-                print("Revisited non-optimal position!")
                 reward += -10 * (optimal_length // 10) # Penalize revisiting non-optimal positions
             elif on_optimal_path and recently_visited:
                 reward += -5 * (optimal_length // 10) # Small penalty for revisiting optimal path positions too soon
