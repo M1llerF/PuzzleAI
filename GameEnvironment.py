@@ -2,7 +2,7 @@ from Maze import Maze
 from SolverBot import SolverBot, BotConfig
 from ReinforcementAgent import QLearning, RewardSystem
 
-max_episodes_number = 11560
+max_episodes_number = 1 #12560
 class EnvironmentSetup:
     def __init__(self, width, height):
         self.maze = Maze(width, height)

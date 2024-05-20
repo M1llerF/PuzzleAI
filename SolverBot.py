@@ -1,6 +1,5 @@
 import numpy as np
 from Pathfinding import Pathfinding
-
 class BotConfig:
     def __init__(self, learning_rate=0.1, discount_factor=0.9, num_actions=4):
         self.learning_rate = learning_rate
@@ -15,23 +14,38 @@ class BotStatistics:
         self.times_revisited_squares = 0
         self.non_repeating_steps_taken = 0
         self.visited_positions = {}
+        self.last_visited = {}
     
     def reset(self):
         """ Reset statistics for a new episode """
+        print(self.visited_positions)
         self.total_steps = 0
         self.cumulative_reward_for_debugging = 0
         self.times_hit_wall = 0
         self.times_revisited_squares = 0
         self.non_repeating_steps_taken = 0
         self.visited_positions.clear()
+        self.last_visited.clear()
     
     def update_visited_positions(self, position):
         """ Update the visited positions """
         self.visited_positions[position] = self.visited_positions.get(position, 0) + 1
-    
+
     def get_visited_positions(self):
         """ Get the visited positions """
         return self.visited_positions
+    
+    def update_last_visited(self, position, current_step):
+        """ Update the last visited steps for a position """
+        if position not in self.last_visited:
+            self.last_visited[position] = []
+        self.last_visited[position].append(current_step)
+        # Keep only the last 5 visits
+        self.last_visited[position] = self.last_visited[position][-5:]
+
+    def get_last_visited(self,position):
+        """ Get the last visited positions """
+        return self.last_visited.get(position, [])
 
 class SolverBot:
     def __init__(self, maze, q_learning, reward_system, config):
@@ -106,13 +120,19 @@ class SolverBot:
     def run_episode(self):
         #print("Running episode...")
         """Run one episode of the bot solving the maze."""
-        #self.maze.display_with_bot(self.position)  # Initial display
+        self.maze.display_with_bot(self.position)  # Initial display
         step_limit = 3000 * self.optimal_length  # Define a reasonable step limit
+
         while self.position != self.maze.end:
             reward = 0
             action = self.q_learning.choose_action(self.state)
             new_position = self.calculate_next_position(action)
             self.statistics.total_steps = self.statistics.times_revisited_squares + self.statistics.non_repeating_steps_taken
+            current_step = self.statistics.total_steps
+            # Update last visited for the current position with the current step count
+            self.statistics.update_last_visited(self.position, current_step)
+            #print(self.statistics.last_visited)
+
             if not self.maze.is_valid_position(new_position[0], new_position[1]):
                 reward += -1000
                 #print("Hit a wall!")
@@ -122,7 +142,7 @@ class SolverBot:
                 self.total_reward += reward
                 continue
             #print("Reward: ", reward)
-            reward += self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions())
+            reward += self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions(), self.statistics.get_last_visited(self.position))
 
             #! Ugly:
             if(self.statistics.total_steps > step_limit):
@@ -137,9 +157,11 @@ class SolverBot:
             self.statistics.update_visited_positions(self.position)
             new_state = self.calculate_state()
             self.q_learning.update_q_value(self.state, action, reward, new_state)
+
             self.position = new_position
             self.state = new_state
-            #self.maze.display_with_bot(self.position) # Optional display     
+            self.maze.display_with_bot(self.position) # Optional display
+        print("Episode Summary: ", self.statistics.total_steps, self.total_reward) 
         self.q_learning.save_q_table()
         self.save_heatmap_data()
 

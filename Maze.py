@@ -139,7 +139,7 @@ class Maze:
         self.ax.set_xticklabels([])
         self.ax.set_yticklabels([])
 
-        plt.pause(0.1)  # Pause briefly to update the plot. Default is 0.01 seconds.
+        plt.pause(0.001)  # Pause briefly to update the plot. Default is 0.01 seconds.
     
 
     def display_with_heatmap(self, heatmap_file):
