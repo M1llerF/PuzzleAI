@@ -67,9 +67,11 @@ class RewardSystem:
         self.times_revisited_square = 0
         self.non_repeating_steps_taken = 0
     
-    def get_reward(self, new_position, optimal_path, optimal_length, visited_positions):
+    def get_reward(self, new_position, optimal_path, optimal_length, visited_positions, recently_visited_positions):
         """Calculate the reward for moving to a new position."""
         reward = 0
+        on_optimal_path = new_position in optimal_path
+        recently_visited = new_position in recently_visited_positions
 
         if new_position == self.maze.end: # Reached the goal
             reward += 1000 * (optimal_length // 10)
@@ -78,19 +80,23 @@ class RewardSystem:
             reward += -100 * (optimal_length // 10)
 
         if new_position in visited_positions: # Revisited a position
-            if new_position in optimal_path:
-                reward += -10 * (optimal_length // 10)
+            if on_optimal_path and not recently_visited:
+                reward += 3 * (optimal_length // 10) # Encourage following optimal path
+            elif not on_optimal_path and recently_visited:
+                reward += -10 * (optimal_length // 10) # Penalize revisiting non-optimal positions
+            elif on_optimal_path and recently_visited:
+                reward += -5 * (optimal_length // 10) # Small penalty for revisiting optimal path positions too soon
             else:
-                reward += -15 * (optimal_length // 10)
+                reward += 1 * (optimal_length // 10) # Small reward for revisiting new non-optimal positions
 
         if new_position in optimal_path: # Moved in the optimal path
             reward += 5 * (optimal_length // 10)
 
         if self.is_goal_in_sight(new_position): # Sees the goal
             if new_position in visited_positions:
-                reward += 5 # Small reward for revisiting a location where it sees the goal
+                reward += 5 * (optimal_length // 10) # Small reward for revisiting a location where it sees the goal
             else:
-                reward += 50 # Large reward for seeing the goal when in a new location
+                reward += 50 * (optimal_length // 10) # Large reward for seeing the goal when in a new location
 
         reward += -1 * (optimal_length // 100) # Small penalty for each move
         

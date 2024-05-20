@@ -1,6 +1,5 @@
 import numpy as np
 from Pathfinding import Pathfinding
-
 class BotConfig:
     def __init__(self, learning_rate=0.1, discount_factor=0.9, num_actions=4):
         self.learning_rate = learning_rate
@@ -15,6 +14,7 @@ class BotStatistics:
         self.times_revisited_squares = 0
         self.non_repeating_steps_taken = 0
         self.visited_positions = {}
+        self.last_visited_positions = []
     
     def reset(self):
         """ Reset statistics for a new episode """
@@ -24,14 +24,28 @@ class BotStatistics:
         self.times_revisited_squares = 0
         self.non_repeating_steps_taken = 0
         self.visited_positions.clear()
-    
+        self.last_visited_positions.clear()
+
     def update_visited_positions(self, position):
         """ Update the visited positions """
         self.visited_positions[position] = self.visited_positions.get(position, 0) + 1
-    
+
     def get_visited_positions(self):
         """ Get the visited positions """
         return self.visited_positions
+
+    def update_last_visited(self, position):
+        """ Update the last visited positions """
+        if position in self.last_visited_positions:
+            self.last_visited_positions.remove(position)
+        self.last_visited_positions.append(position)
+        if len(self.last_visited_positions) > 5:
+            self.last_visited_positions.pop(0)
+
+
+    def get_last_visited(self):
+        """ Get the last visited positions """
+        return self.last_visited_positions
 
 class SolverBot:
     def __init__(self, maze, q_learning, reward_system, config):
@@ -108,11 +122,13 @@ class SolverBot:
         """Run one episode of the bot solving the maze."""
         #self.maze.display_with_bot(self.position)  # Initial display
         step_limit = 3000 * self.optimal_length  # Define a reasonable step limit
+
         while self.position != self.maze.end:
             reward = 0
             action = self.q_learning.choose_action(self.state)
             new_position = self.calculate_next_position(action)
             self.statistics.total_steps = self.statistics.times_revisited_squares + self.statistics.non_repeating_steps_taken
+
             if not self.maze.is_valid_position(new_position[0], new_position[1]):
                 reward += -1000
                 #print("Hit a wall!")
@@ -122,7 +138,8 @@ class SolverBot:
                 self.total_reward += reward
                 continue
             #print("Reward: ", reward)
-            reward += self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions())
+            self.statistics.update_last_visited(self.position)
+            reward += self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions(), self.statistics.get_last_visited())
 
             #! Ugly:
             if(self.statistics.total_steps > step_limit):
@@ -137,9 +154,11 @@ class SolverBot:
             self.statistics.update_visited_positions(self.position)
             new_state = self.calculate_state()
             self.q_learning.update_q_value(self.state, action, reward, new_state)
+
             self.position = new_position
             self.state = new_state
-            #self.maze.display_with_bot(self.position) # Optional display     
+            #self.maze.display_with_bot(self.position) # Optional display
+       # print("Episode Summary: ", self.statistics.total_steps, self.total_reward) 
         self.q_learning.save_q_table()
         self.save_heatmap_data()
 

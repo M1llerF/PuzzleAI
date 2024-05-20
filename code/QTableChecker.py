@@ -1,6 +1,7 @@
 import pickle
 import numpy as np
 
+# 0 up, 2 left, 1 down, 3 right
 class QTableChecker:
     def __init__(self, q_table_file):
         self.q_table_file = q_table_file
@@ -43,6 +44,15 @@ class QTableChecker:
         sorted_states = sorted(self.q_table.keys(), key=lambda state: np.max(self.q_table[state]), reverse=True)
         for i, state in enumerate(sorted_states[:top_n]):
             best_action = np.argmax(self.q_table[state])
+            if(best_action == 0):
+                best_action = "Up"
+            elif(best_action == 1):
+                best_action = "Down"
+            elif(best_action == 2):
+                best_action = "Left"
+            elif(best_action == 3):
+                best_action = "Right"
+
             best_q_value = np.max(self.q_table[state])
             print(f"Rank {i+1}: State {state}, Best Action: {best_action}, Best Q-value: {best_q_value}")
 
