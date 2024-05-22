@@ -120,7 +120,7 @@ class SolverBot:
     def run_episode(self):
         #print("Running episode...")
         """Run one episode of the bot solving the maze."""
-        #self.maze.display_with_bot(self.position)  # Initial display
+        self.maze.display_with_bot(self.position)  # Initial display
         step_limit = 3000 * self.optimal_length  # Define a reasonable step limit
 
         while self.position != self.maze.end:
@@ -157,7 +157,7 @@ class SolverBot:
 
             self.position = new_position
             self.state = new_state
-            #self.maze.display_with_bot(self.position) # Optional display
+            self.maze.display_with_bot(self.position) # Optional display
        # print("Episode Summary: ", self.statistics.total_steps, self.total_reward) 
         self.q_learning.save_q_table()
         self.save_heatmap_data()

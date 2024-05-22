@@ -31,7 +31,7 @@ class QLearning:
 
         if state_key not in self.q_table:
             self.q_table[state_key] = np.zeros(self.num_actions) 
-        exploration_rate = max(0.1, 1.0 - 0.001 * BotStatistics().non_repeating_steps_taken)
+        exploration_rate = max(0.01, 1.0 - 0.001 * BotStatistics().non_repeating_steps_taken)
         if np.random.rand() < exploration_rate:
             return np.random.randint(self.num_actions)
         return np.argmax(self.q_table[state_key])
@@ -83,7 +83,7 @@ class RewardSystem:
             if on_optimal_path and not recently_visited:
                 reward += 3 * (optimal_length // 10) # Encourage following optimal path
             elif not on_optimal_path and recently_visited:
-                reward += -10 * (optimal_length // 10) # Penalize revisiting non-optimal positions
+                reward += -15 * (optimal_length // 10) # Penalize revisiting non-optimal positions
             elif on_optimal_path and recently_visited:
                 reward += -5 * (optimal_length // 10) # Small penalty for revisiting optimal path positions too soon
             else:

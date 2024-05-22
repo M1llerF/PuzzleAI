@@ -2,7 +2,7 @@ from Maze import Maze
 from SolverBot import SolverBot, BotConfig
 from ReinforcementAgent import QLearning, RewardSystem
 
-max_episodes_number = 1 #12560
+max_episodes_number = 1000 #12560
 class EnvironmentSetup:
     def __init__(self, width, height):
         self.maze = Maze(width, height)
@@ -40,7 +40,7 @@ class GameEnvironment:
 
 
         while self.episode_count < self.max_episodes:
-            if(self.episode_count % 100 == 0):
+            if(self.episode_count % 1000 == 0):
                 print(f"Running episode {self.episode_count + 1}")
             if self.maze.is_solvable():
                 #print("Maze is solvable, running episode...")
