@@ -31,7 +31,7 @@ class QLearning:
 
         if state_key not in self.q_table:
             self.q_table[state_key] = np.zeros(self.num_actions) 
-        exploration_rate = max(0.01, 1.0 - 0.001 * BotStatistics().non_repeating_steps_taken)
+        exploration_rate = max(0.05, 1.0 - 0.001 * BotStatistics().non_repeating_steps_taken)
         if np.random.rand() < exploration_rate:
             return np.random.randint(self.num_actions)
         return np.argmax(self.q_table[state_key])
