@@ -2,7 +2,7 @@ from Maze import Maze
 from SolverBot import SolverBot, BotConfig
 from ReinforcementAgent import QLearning, RewardSystem
 
-max_episodes_number = 1000 #12560
+max_episodes_number = 2 #1620
 class EnvironmentSetup:
     def __init__(self, width, height):
         self.maze = Maze(width, height)
@@ -40,7 +40,7 @@ class GameEnvironment:
 
 
         while self.episode_count < self.max_episodes:
-            if(self.episode_count % 1000 == 0):
+            if(self.episode_count % 1 == 0):
                 print(f"Running episode {self.episode_count + 1}")
             if self.maze.is_solvable():
                 #print("Maze is solvable, running episode...")
@@ -60,9 +60,12 @@ class GameEnvironment:
         print("Game stopped!")
     
     def display_heatmap(self):
-        self.maze.display_with_heatmap('code/NonCodeFiles/HeatmapData.txt')
+        #self.maze.display_with_heatmap('code/NonCodeFiles/HeatmapData.txt') #! Disabled for random dimension mazes
+        return None #! Enabled for random dimension mazes
 
 if __name__ == "__main__":
-    game_env = GameEnvironment(25, 15, max_episodes=max_episodes_number)
+    # game_env = GameEnvironment(25, 15, max_episodes=max_episodes_number)
+    game_env = GameEnvironment(10, 10, max_episodes=max_episodes_number)
+
     game_env.start_game()
     game_env.display_heatmap()
