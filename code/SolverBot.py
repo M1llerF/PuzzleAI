@@ -120,14 +120,15 @@ class SolverBot:
     def run_episode(self):
         #print("Running episode...")
         """Run one episode of the bot solving the maze."""
-        #self.maze.display_with_bot(self.position)  # Initial display
-        step_limit = 3000 * self.optimal_length  # Define a reasonable step limit
+        self.maze.display_with_bot(self.position)  # Initial display
+        step_limit = 1000 * self.optimal_length  # Define a reasonable step limit
 
         while self.position != self.maze.end:
             reward = 0
             action = self.q_learning.choose_action(self.state)
             new_position = self.calculate_next_position(action)
             self.statistics.total_steps = self.statistics.times_revisited_squares + self.statistics.non_repeating_steps_taken
+            #print(f"Step: {self.statistics.total_steps}")
 
             if not self.maze.is_valid_position(new_position[0], new_position[1]):
                 reward += -1000
@@ -140,11 +141,18 @@ class SolverBot:
             #print("Reward: ", reward)
             self.statistics.update_last_visited(self.position)
             reward += self.reward_system.get_reward(new_position, self.optimal_path, self.optimal_length, self.statistics.get_visited_positions(), self.statistics.get_last_visited())
+            
+            if new_position in self.statistics.get_visited_positions():
+                self.statistics.times_revisited_squares += 1
+            else:
+                self.statistics.non_repeating_steps_taken += 1
 
             #! Ugly:
             if(self.statistics.total_steps > step_limit):
-                self.print("Step limit reached.")
-                reward -= 1000
+                print("Step limit reached: ", self.statistics.total_steps)
+                reward += -1000
+                new_state = self.calculate_state()
+                self.q_learning.update_q_value(self.state, action, reward, new_state)
                 self.total_reward += reward # Include penalty
                 break
             
@@ -157,7 +165,7 @@ class SolverBot:
 
             self.position = new_position
             self.state = new_state
-            #self.maze.display_with_bot(self.position) # Optional display
+            self.maze.display_with_bot(self.position) # Optional display
        # print("Episode Summary: ", self.statistics.total_steps, self.total_reward) 
         self.q_learning.save_q_table()
         self.save_heatmap_data()
