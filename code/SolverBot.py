@@ -1,3 +1,4 @@
+#* This class will be refactored for the new customization options we are providing to users
 import numpy as np
 from Pathfinding import Pathfinding
 class BotConfig:
@@ -42,7 +43,6 @@ class BotStatistics:
         if len(self.last_visited_positions) > 5:
             self.last_visited_positions.pop(0)
 
-
     def get_last_visited(self):
         """ Get the last visited positions """
         return self.last_visited_positions
@@ -78,7 +78,6 @@ class SolverBot:
         distance_to_goal = np.linalg.norm(np.array(self.position) - np.array(self.maze.end))
         return (position_index, tuple(wall_distances.values()), visited, distance_to_goal, goal_direction)
     
-    #! BOT KEEPS TRYING TO MOVE INTO WALLS
     def detect_walls(self):
         """Detect the distance to walls in all directions"""
         directions = {

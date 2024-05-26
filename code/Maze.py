@@ -12,17 +12,15 @@ class Maze:
         self.start = start
         self.end = end
         self.minimum_distance = max(width, height) // 2
+        self.setup_simple_maze()
 
         # Initialize the figure and axes here for reuse
         self.fig, self.ax = plt.subplots()
         plt.ion() # Enable interactive mode for live plotting
     
     def is_valid_position(self, x, y):
-        #print(f"x: {x}, y: {y}, self.height: {self.height}, self.width: {self.width}")
-        # ! and self.grid[x][y] == 0 causes error
         return 0 <= x < self.height and 0 <= y < self.width and self.grid[x][y] == 0 # 0 is an open path.
 
-    
     def set_wall(self, x, y):
         if 0 <= x < self.height and 0 <= y < self.width:
             self.grid[x][y] = 1
@@ -46,6 +44,10 @@ class Maze:
     def is_solvable(self):
         return True  # Placeholder for now
     
+    def get_start(self):
+        print("(From Maze.py, get_start(...)) Printing start: ",self.start)
+        return self.start
+    
     def set_start(self, x, y):
         if self.is_valid_position(x, y):
             self.start = (x, y)
@@ -53,7 +55,6 @@ class Maze:
             raise ValueError("Invalid start position")
     
     def set_goal(self, x, y):
-        #print(f"x: {x}, y: {y}")
         if self.is_valid_position(x, y):
             self.end = (x, y)
         else:
@@ -142,85 +143,6 @@ class Maze:
 
         self.set_start(*self.start)
         self.set_goal(*self.end)
-    # def setup_simple_maze(self):
-    #     #* Not a perfect system, but good for now
-    #     self.width = random.randrange(self.width, self.width + 3, 1)
-    #     self.height = random.randrange(self.height, self.height + 3, 1)
-
-    #     self.grid = [[1 for _ in range(self.width)] for _ in range(self.height)]
-        
-        # def dfs_iterative(x, y):
-        #     stack = [(x, y)]
-        #     directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-
-        #     while stack:
-        #         cx, cy = stack.pop()
-        #         random.shuffle(directions)
-        #         for dx, dy in directions:
-        #             nx, ny = cx + 2 * dx, cy + 2 * dy
-        #             if 1 <= nx < self.height - 1 and 1 <= ny < self.width - 1 and self.grid[nx][ny] == 1:
-        #                 self.grid[cx + dx][cy + dy] = 0
-        #                 self.grid[nx][ny] = 0
-        #                 stack.append((nx, ny))
-
-        # start_x = random.randrange(1, self.height - 1, 2)
-        # start_y = random.randrange(1, self.width - 1, 2)
-        # self.grid[start_x][start_y] = 0
-        # dfs_iterative(start_x, start_y)
-
-    #     start_positions = [(x, y) for x in range(1, self.height - 1) for y in range(1, self.width - 1) if self.grid[x][y] == 0]
-    #     self.start = random.choice(start_positions)
-        
-    #     # Ensure the goal is at least minimum_distance away from the start
-    #     valid_end_positions = [pos for pos in start_positions if np.linalg.norm(np.array(pos) - np.array(self.start)) >= self.minimum_distance]
-        
-    #     if valid_end_positions:
-    #         self.end = random.choice(valid_end_positions)
-    #     else:
-    #         # If no valid end positions, fallback to the farthest position
-    #         self.end = max(start_positions, key=lambda pos: np.linalg.norm(np.array(pos) - np.array(self.start)))
-
-    #     self.set_start(*self.start)
-    #     self.set_goal(*self.end)
-
-    
-    # def setup_simple_maze(self):
-    #     #* Not a perfect system, but good for now
-    #     self.width = random.randrange(self.width, self.width + 3, 1)
-    #     self.height = random.randrange(self.height, self.height + 3, 1)
-
-    #     self.grid = [[1 for _ in range(self.width)] for _ in range(self.height)]
-        
-    #     def dfs(x, y):
-    #         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-    #         random.shuffle(directions)
-    #         for dx, dy in directions:
-    #             nx, ny = x + 2 * dx, y + 2 * dy
-    #             if 1 <= nx < self.height - 1 and 1 <= ny < self.width - 1 and self.grid[nx][ny] == 1:
-    #                 self.grid[x + dx][y + dy] = 0
-    #                 self.grid[nx][ny] = 0
-    #                 dfs(nx, ny)
-
-    #     start_x = random.randrange(1, self.height - 1, 2)
-    #     start_y = random.randrange(1, self.width - 1, 2)
-    #     self.grid[start_x][start_y] = 0
-    #     dfs(start_x, start_y)
-
-    #     start_positions = [(x, y) for x in range(1, self.height - 1) for y in range(1, self.width - 1) if self.grid[x][y] == 0]
-    #     self.start = random.choice(start_positions)
-        
-    #     # Ensure the goal is at least minimum_distance away from the start
-    #     valid_end_positions = [pos for pos in start_positions if np.linalg.norm(np.array(pos) - np.array(self.start)) >= self.minimum_distance]
-        
-    #     if valid_end_positions:
-    #         self.end = random.choice(valid_end_positions)
-    #     else:
-    #         # If no valid end positions, fallback to the farthest position
-    #         self.end = max(start_positions, key=lambda pos: np.linalg.norm(np.array(pos) - np.array(self.start)))
-
-    #     self.set_start(*self.start)
-    #     self.set_goal(*self.end)
-
 
     def display_with_bot(self, bot_position):
         """ Display the maze with the bot's current position highlighted. """
@@ -296,9 +218,9 @@ class Maze:
             self.ax.scatter(self.end[1], self.end[0], color='green', s=100, edgecolor='black', label='End')
 
 
-        plt.ioff()
-        plt.show()
-        
+        self.finalize_display()
+    
+    #? Is this really needed? :
     def finalize_display(self):
         """Finalize the display by turning off interactive mode and showing the plot."""
         plt.ioff()
