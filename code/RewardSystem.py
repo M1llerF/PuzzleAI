@@ -1,7 +1,13 @@
 
 class RewardConfig:
-    def __init__(self):
-        self.reward_modifiers = {
+    def __init__(self, **kwargs):
+        self.goal_reward = kwargs.get('goal_reward', 1000)
+        self.wall_penalty = kwargs.get('wall_penalty', -100)
+        self.revisit_penalty_optimal = kwargs.get('revisit_penalty_optimal', -10)
+        self.revisit_penalty_non_optimal = kwargs.get('revisit_penalty_non_optimal', -15)
+        self.step_penalty = kwargs.get('step_penalty', -1)
+        self.goal_in_sight_reward = kwargs.get('goal_in_sight_reward', 50)
+        self.reward_modifiers = kwargs.get('reward_modifiers', {
             'goal_reached': '1000 * (optimal_length // 10)',
             'hit_wall': '-100 * (optimal_length // 10)',
             'revisit_optimal_path': '-10 * (optimal_length // 10)',
@@ -10,7 +16,7 @@ class RewardConfig:
             'see_goal_new_location': '50',
             'see_goal_revisit': '5',
             'per_move_penalty': '-1 * (optimal_length // 100)'
-        }
+        })
 
     def customize_reward_modifiers(self):
         while True:

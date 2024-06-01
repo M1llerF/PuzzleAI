@@ -16,15 +16,16 @@ class QLearningConfig:
 
 
 class QLearning:
-    def __init__(self, learning_rate=0.1, discount_factor=0.9):
-        self.lr = learning_rate
-        self.gamma = discount_factor
+    def __init__(self, q_learning_config):
+        self.lr = q_learning_config.learning_rate
+        self.gamma = q_learning_config.discount_factor
         self.num_actions = 4
         self.visited_positions = {}
         self.q_table = {}
         self.initial_exploration_rate = 1.0
         self.min_exploration_rate = 0.1
         self.exploration_decay_rate = 0.001
+        self.q_learning_config = q_learning_config
 
     
     def update_q_value(self, state, action, reward, new_state):
@@ -55,6 +56,7 @@ class QLearning:
         return np.argmax(self.q_table[state_key])
     
     def save_q_table(self):
+        print("Saving Q-table...")
         """Save the Q-table to a file."""
         with open('code/NonCodeFiles/q_table.pkl', 'wb') as f:
             pickle.dump(self.q_table, f)
@@ -82,8 +84,8 @@ class QLearningBot(BaseBot):
         super().__init__(maze, q_learning_config, reward_system, tool_config) # Debugging comment: This is passing the reward_system to BaseBot correctly
         # print(f"q_learning_config type (@ QLearningBot __init__): {type(q_learning_config)}")  # Debugging print
         # print(q_learning_config.learning_rate, q_learning_config.discount_factor)
-        self.q_learning = QLearning(q_learning_config.learning_rate, q_learning_config.discount_factor) #? learning_rate and discount_factor may not be accesible?
-        self.tools = BotTools(maze, self.q_learning)
+        self.q_learning = QLearning(q_learning_config) # Pass the config object
+        self.tools = BotTools(maze, self.tool_config)
         self.statistics = statistics
         self.total_reward = 0
         self.position = maze.get_start()
@@ -110,7 +112,7 @@ class QLearningBot(BaseBot):
             new_position = self.tools.calculate_next_position(self.position, action)
             self.statistics.total_steps = self.statistics.times_revisited_squares + self.statistics.non_repeating_steps_taken
 
-            print(f"Step: {steps}, Position: {self.position}, Action: {action}, New Position: {new_position}")
+            #print(f"Step: {steps}, Position: {self.position}, Action: {action}, New Position: {new_position}")
 
             if not self.maze.is_valid_position(new_position[0], new_position[1]):
                 # Could be messing up*
@@ -118,7 +120,7 @@ class QLearningBot(BaseBot):
                 new_state = self.calculate_state()
                 self.q_learning.update_q_value(self.state, action, reward, new_state)
                 self.total_reward += reward
-                print(f"Hit wall, Reward: {reward}, Total Reward: {self.total_reward}")
+                #print(f"Hit wall, Reward: {reward}, Total Reward: {self.total_reward}")
                 continue
 
             self.statistics.update_last_visited(self.position)
