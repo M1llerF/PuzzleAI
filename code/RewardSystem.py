@@ -46,7 +46,7 @@ class RewardConfig:
     def remove_reward_modifier(self):
         key = input("Enter the reward identifier to remove: ").strip()
         if key in self.reward_modifiers:
-            del self.reward_modifiers[key]
+            self.reward_modifiers[key] = '0'
         else:
             print("Invalid identifier. Reward not removed.")
 

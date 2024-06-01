@@ -37,7 +37,7 @@ class BotToolsConfig:
     def remove_tool(self):
         key = input("Enter the tool identifier to remove: ").strip()
         if key in self.tools:
-            del self.tools[key]
+            self.tools[key] = '0'
         else:
             print("Invalid identifier. Tool not removed.")
 
