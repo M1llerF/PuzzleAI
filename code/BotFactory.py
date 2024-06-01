@@ -30,7 +30,7 @@ class BotFactory:
     def __init__(self, maze):
         self.maze = maze
 
-    def create_bot(self, bot_type):
+    def create_bot(self, bot_type, profile_name):
         if bot_type == "QLearningBot":
             q_learning_config = QLearningConfig()
             reward_config = RewardConfig()
@@ -38,6 +38,6 @@ class BotFactory:
             bot_statistics = BotStatistics()
             reward_system = RewardSystem(self.maze, reward_config)
             
-            return QLearningBot(self.maze, q_learning_config, reward_system, tool_config, bot_statistics)
+            return QLearningBot(self.maze, q_learning_config, reward_system, tool_config, bot_statistics, profile_name)
         raise ValueError(f"Unknown bot type: {bot_type}")
 

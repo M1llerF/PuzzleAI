@@ -80,13 +80,14 @@ class QLearning:
 
 
 class QLearningBot(BaseBot):
-    def __init__(self, maze, q_learning_config, reward_system, tool_config, statistics):
+    def __init__(self, maze, q_learning_config, reward_system, tool_config, statistics, profile_name):
         super().__init__(maze, q_learning_config, reward_system, tool_config) # Debugging comment: This is passing the reward_system to BaseBot correctly
         # print(f"q_learning_config type (@ QLearningBot __init__): {type(q_learning_config)}")  # Debugging print
         # print(q_learning_config.learning_rate, q_learning_config.discount_factor)
         self.q_learning = QLearning(q_learning_config) # Pass the config object
         self.tools = BotTools(maze, self.tool_config)
         self.statistics = statistics
+        self.profile_name = profile_name
         self.total_reward = 0
         self.position = maze.get_start()
         self.state = self.calculate_state()
@@ -101,7 +102,7 @@ class QLearningBot(BaseBot):
     
     def run_episode(self):
         print("(From QLearningBot.py, QLearningBot(...), run_episodee(...)): Starting episode")
-        self.maze.display_with_bot(self.position)  # Initial display
+        #self.maze.display_with_bot(self.position)  # Initial display
 
         step_limit = 1000 * self.tools.get_optimal_path_info(self.maze.start, self.maze.end, output='length')
         steps = 0
@@ -158,7 +159,7 @@ class QLearningBot(BaseBot):
                 self.statistics.total_steps = 0
                 self.reset_bot()
             
-            self.maze.display_with_bot(self.position) # Optional display
+            #self.maze.display_with_bot(self.position) # Optional display
 
             
     def reset_bot(self):

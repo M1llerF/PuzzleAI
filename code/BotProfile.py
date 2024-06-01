@@ -8,7 +8,8 @@ from BotStatistics import BotStatistics
 
 
 class BotProfile:
-    def __init__(self, bot_type, q_learning_config, reward_config, tools_config, q_table, statistics):
+    def __init__(self, name, bot_type, q_learning_config, reward_config, tools_config, q_table, statistics):
+        self.name = name
         self.bot_type = bot_type
         self.q_learning_config = q_learning_config
         self.reward_config = reward_config
@@ -19,6 +20,7 @@ class BotProfile:
     def to_dict(self):
         """Convert the profile to a dictionary."""
         return {
+            "name": self.name,
             "bot_type": self.bot_type,
             "q_learning_config": self.q_learning_config.__dict__,
             "reward_config": self.reward_config.__dict__,
@@ -54,6 +56,7 @@ class BotProfile:
         # statistics.__dict__.update(data['statistics'])
 
         return BotProfile(
+            data['name'],
             data['bot_type'],
             q_learning_config,
             reward_config,
@@ -69,7 +72,7 @@ class ProfileManager:
     def save_profile(self, profile):
         """Save a profile to a pickle file."""
         print("SAVE PROFILE CALLED")
-        filename = f"{self.profile_directory}/{profile.bot_type}.pkl"
+        filename = f"{self.profile_directory}/{profile.name}.pkl"
         with open(filename, 'wb') as f:
             pickle.dump(profile.to_dict(), f)
 

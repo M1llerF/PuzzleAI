@@ -1,1 +1,1 @@
-profile
+start_game

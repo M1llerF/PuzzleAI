@@ -17,18 +17,16 @@ class GameEnvironment:
         self.bots = []
         self.load_profile_menu()
 
-    def setup_bots(self): # .super goes to this
-        self.bots.append(self.bot_factory.create_bot('QLearningBot'))
-
-    def start_game(self):
-        self.setup_bots()
-        self.game_loop() # From here, causes game start coordinates to be spam printed
+    def setup_bots(self, bot_type, bot_name): # .super goes to this
+        self.bots.append(self.bot_factory.create_bot(bot_type=bot_type,profile_name=bot_name))
         
     def game_loop(self):
+        print("(From GameEnvironment.py, GameEnvironment, game_loop(...))")
         loop_count = 100
         bot = self.bots[0]
-        while i < loop_count:
+        for i in range(loop_count):
             i += 1
+            print(f"Game loop {i}")
             #print("(From GameEnvironment.py, GameEnvironment, game_loop(...)) game_Bot: ", bot)
             bot.run_episode()
             #print("(From GameEnvironment.py, GameEnvironment, game_loop(...)) Episode run should be complete.")
@@ -39,6 +37,7 @@ class GameEnvironment:
         self.maze.setup_simple_maze()
         for bot in self.bots:
             bot.reset_bot()
+
 
     def load_profile_menu(self):
         profiles = self.profile_manager.list_profiles()
@@ -63,7 +62,8 @@ class GameEnvironment:
         print("Statistics:")
         print(profile.statistics.__dict__)
 
-        bot = self.bot_factory.create_bot(profile.bot_type)
+
+        bot = self.bot_factory.create_bot(profile.bot_type, profile.name)
         bot.q_learning.config = profile.q_learning_config
         bot.reward_system.reward_config = profile.reward_config
         bot.tools.config = profile.tools_config
@@ -101,7 +101,7 @@ class GameEnvironment:
         bot_type = 'QLearningBot'  # Set to a valid bot type
     
         # Create a new profile with the valid bot_type
-        profile = BotProfile(bot_type, q_learning_config, reward_config, tools_config, {}, BotStatistics())
+        profile = BotProfile(profile_name, bot_type, q_learning_config, reward_config, tools_config, {}, BotStatistics())
         
         # Save the new profile
         self.profile_manager.save_profile(profile)
@@ -115,19 +115,14 @@ class GameEnvironment:
         tools_config = profile.tools_config
         bot_statistics = profile.statistics
         reward_system = RewardSystem(self.maze, reward_config)
-        q_learning_bot = QLearningBot(self.maze, q_learning_config, reward_system, tools_config, bot_statistics)
+        q_learning_bot = QLearningBot(self.maze, q_learning_config, reward_system, tools_config, bot_statistics, profile_name=profile.name)
         q_learning_bot.q_learning.q_table = profile.q_table
         self.bots.append(q_learning_bot)
-
-    def start_game(self):
-        for bot in self.bots:
-            bot.run_episode()
-        self.save_profiles()
-
 
     def save_profiles(self):
         for bot in self.bots:
             profile = BotProfile(
+                name = bot.profile_name,
                 bot_type=type(bot).__name__,
                 q_learning_config=bot.q_learning.q_learning_config,
                 reward_config=bot.reward_system.reward_config,
@@ -140,5 +135,6 @@ class GameEnvironment:
 
 if __name__ == "__main__":
     game_env = GameEnvironment()
-    game_env.start_game()
+    print("Starting game........")
+    game_env.game_loop()
     

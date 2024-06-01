@@ -132,3 +132,4 @@ class BotTools:
             return optimal_length
         else:
             raise ValueError("Output parameter must be 'path' or 'length'")
+        
