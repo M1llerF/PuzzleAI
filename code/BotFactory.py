@@ -1,43 +1,22 @@
-# from QLearningBot import QLearningBot, QLearningConfig
-# from BotStatistics import BotStatistics
-# from RewardSystem import RewardConfig, RewardSystem
-# from BotTools import BotToolsConfig
-
-# class BotFactory:
-#     def __init__(self, maze):
-#         self.maze = maze
-    
-#     def create_bot(self, bot_type):
-#         bot_statistics = BotStatistics()
-#         reward_config = RewardConfig()
-#         q_learning_config = QLearningConfig(learning_rate=0.1, discount_factor=0.9)
-#         reward_system = RewardSystem(self.maze, reward_config)
-#         reward_system.reward_config.test_print("From BotFactory")
-#         tool_config = BotToolsConfig()
-
-#         if bot_type == 'QLearningBot':
-#             return QLearningBot(self.maze, q_learning_config, reward_system, tool_config, bot_statistics)
-#         # Add more bot types here
-#         else:
-#             raise ValueError(f"Unknown bot type: {bot_type}")
-from RewardSystem import RewardConfig, RewardSystem
-from QLearningBot import QLearningBot, QLearningConfig
-from BotTools import BotToolsConfig
-from BotStatistics import BotStatistics
-from BaseBot import BaseBot
+from RewardSystem import RewardSystem
 
 class BotFactory:
     def __init__(self, maze):
         self.maze = maze
+        self.bot_registry = {}
 
-    def create_bot(self, bot_type, profile_name):
-        if bot_type == "QLearningBot":
-            q_learning_config = QLearningConfig()
-            reward_config = RewardConfig()
-            tool_config = BotToolsConfig()
-            bot_statistics = BotStatistics()
-            reward_system = RewardSystem(self.maze, reward_config)
-            
-            return QLearningBot(self.maze, q_learning_config, reward_system, tool_config, bot_statistics, profile_name)
-        raise ValueError(f"Unknown bot type: {bot_type}")
+    def register_bot(self, bot_type, bot_class):
+        self.bot_registry[bot_type] = bot_class
 
+    def create_bot(self, bot_type, profile_name, config, reward_config, tools_config, statistics, bot_specific_data):
+        if bot_type not in self.bot_registry:
+            raise ValueError(f"Unknown bot type: {bot_type}")
+
+        bot_class = self.bot_registry[bot_type]
+        reward_system = RewardSystem(self.maze, reward_config)
+        bot_instance = bot_class(self.maze, config, reward_system, tools_config, statistics, profile_name=profile_name)
+        
+        if hasattr(bot_instance, 'initialize_specific_data'):
+            bot_instance.initialize_specific_data(bot_specific_data)
+
+        return bot_instance

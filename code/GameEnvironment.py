@@ -5,6 +5,7 @@ from RewardSystem import RewardConfig, RewardSystem
 from BotTools import BotToolsConfig
 from BotStatistics import BotStatistics
 from BotProfile import BotProfile, ProfileManager
+from BotConfigs import QLearningConfig
 
 class GameEnvironment:
     def __init__(self):
@@ -15,29 +16,58 @@ class GameEnvironment:
         self.bot_factory = BotFactory(self.maze)
         self.profile_manager = ProfileManager('profiles')
         self.bots = []
+        self.register_bots()
         self.load_profile_menu()
 
-    def setup_bots(self, bot_type, bot_name): # .super goes to this
-        self.bots.append(self.bot_factory.create_bot(bot_type=bot_type,profile_name=bot_name))
+    
+    def register_bots(self):
+        from QLearningBot import QLearningBot
+        # Register other bots as needed
+        self.bot_factory.register_bot('QLearningBot', QLearningBot)
+        # self.bot_factory.register_bot('AnotherBot', AnotherBot)
+
+    def setup_new_profile(self):
+        profile_name = input("Enter a name for the new profile: ")
+        bot_type = input("Enter the bot type (e.g., 'QLearningBot'): ")
+
+        config_mapping = {
+            'QLearningBot': QLearningConfig,
+            # Add other bot types and their config classes here
+        }
+
+        if bot_type in config_mapping:
+            config_class = config_mapping[bot_type]
+            config = config_class()
+            config.customize()
+        else:
+            raise ValueError(f"Unknown bot type: {bot_type}")
+
+        tools_config = BotToolsConfig()
+        tools_config.customize_tools()
+
+        reward_config = RewardConfig()
+        reward_config.customize_reward_modifiers()
+                        #    name,         bot_type, config, q_learning_config, reward_config, tools_config, q_table, statistics
+        profile = BotProfile(profile_name, bot_type, config, reward_config, tools_config, BotStatistics(), {})
+
+
+        self.profile_manager.save_profile(profile)
+        self.setup_bots(profile.bot_type, profile.name, config, reward_config, tools_config, profile.statistics, profile.bot_specific_data)
         
     def game_loop(self):
         print("(From GameEnvironment.py, GameEnvironment, game_loop(...))")
-        loop_count = 100
+        loop_count = 2
         bot = self.bots[0]
         for i in range(loop_count):
             i += 1
             print(f"Game loop {i}")
-            #print("(From GameEnvironment.py, GameEnvironment, game_loop(...)) game_Bot: ", bot)
             bot.run_episode()
-            #print("(From GameEnvironment.py, GameEnvironment, game_loop(...)) Episode run should be complete.")
             self.reset_environment()
-            #print("(From GameEnvironment.py, GameEnvironment, game_loop(...)) Resetting environment")
 
     def reset_environment(self):
         self.maze.setup_simple_maze()
         for bot in self.bots:
             bot.reset_bot()
-
 
     def load_profile_menu(self):
         profiles = self.profile_manager.list_profiles()
@@ -51,87 +81,41 @@ class GameEnvironment:
         else:
             self.setup_new_profile()
 
+
     def apply_profile(self, profile):
+        bot = self.bot_factory.create_bot(profile.bot_type, profile.name, profile.config, profile.reward_config, profile.tools_config, profile.statistics, profile.bot_specific_data)
         print("Applying profile:")
-        print("Q-Learning Config:")
-        print(profile.q_learning_config.__dict__)
-        print("Reward Config:")
-        print(profile.reward_config.__dict__)
+        print("Config:")
+        print(profile.config.__dict__)
         print("Tools Config:")
         print(profile.tools_config.__dict__)
         print("Statistics:")
         print(profile.statistics.__dict__)
-
-
-        bot = self.bot_factory.create_bot(profile.bot_type, profile.name)
-        bot.q_learning.config = profile.q_learning_config
-        bot.reward_system.reward_config = profile.reward_config
-        bot.tools.config = profile.tools_config
-        bot.q_learning.q_table = profile.q_table
-        bot.statistics = profile.statistics
         self.bots.append(bot)
 
-    # def setup_new_profile(self):
-    #     profile_name = input("Enter a name for the new profile: ")
-    #     q_learning_config = QLearningConfig()
-    #     reward_config = RewardConfig()
-    #     tools_config = BotToolsConfig()
-    #     q_learning_config.customize_q_learning()
-    #     reward_config.customize_reward_modifiers()
-    #     profile = BotProfile(profile_name, q_learning_config, reward_config, tools_config, {}, BotStatistics())
-    #     self.profile_manager.save_profile(profile)
-    #     self.setup_bots(profile)
+        # bot = self.bot_factory.create_bot(profile.bot_type, profile.name)
+        # bot.q_learning.config = profile.q_learning_config
+        # bot.reward_system.reward_config = profile.reward_config
+        # bot.tools.config = profile.tools_config
+        # bot.q_learning.q_table = profile.q_table
+        # bot.statistics = profile.statistics
 
-    def setup_new_profile(self):
-        profile_name = input("Enter a name for the new profile: ")
-        #! Reward values are not being utilized. Instead the seems to be getting the original values from the RewardConfig class
-        # Create and customize configurations
-        q_learning_config = QLearningConfig()
-        reward_config = RewardConfig()
-        print("Final reward modifiers:")
-        for key, value in reward_config.reward_modifiers.items():
-            print(f"{key}: {value}")
-        tools_config = BotToolsConfig()
-        print("\n Tools Config:" + str(tools_config.__dict__), "\n")
-        q_learning_config.customize_q_learning()
-        reward_config.customize_reward_modifiers()
-        tools_config.customize_tools()
-        
-        # Ensure the bot_type is set correctly
-        bot_type = 'QLearningBot'  # Set to a valid bot type
-    
-        # Create a new profile with the valid bot_type
-        profile = BotProfile(profile_name, bot_type, q_learning_config, reward_config, tools_config, {}, BotStatistics())
-        
-        # Save the new profile
-        self.profile_manager.save_profile(profile)
-        
-        # Set up bots using the new profile
-        self.setup_bots(profile)
 
-    def setup_bots(self, profile):
-        q_learning_config = profile.q_learning_config
-        reward_config = profile.reward_config
-        tools_config = profile.tools_config
-        bot_statistics = profile.statistics
-        reward_system = RewardSystem(self.maze, reward_config)
-        q_learning_bot = QLearningBot(self.maze, q_learning_config, reward_system, tools_config, bot_statistics, profile_name=profile.name)
-        q_learning_bot.q_learning.q_table = profile.q_table
-        self.bots.append(q_learning_bot)
+    def setup_bots(self, bot_type, bot_name, config, reward_config, tools_config, statistics, bot_specific_data):
+        self.bots.append(self.bot_factory.create_bot(bot_type=bot_type, profile_name=bot_name, config=config, reward_config=reward_config, tools_config=tools_config, statistics=statistics, bot_specific_data=bot_specific_data))
 
     def save_profiles(self):
         for bot in self.bots:
             profile = BotProfile(
                 name = bot.profile_name,
                 bot_type=type(bot).__name__,
-                q_learning_config=bot.q_learning.q_learning_config,
+                config=bot.config,
                 reward_config=bot.reward_system.reward_config,
                 tools_config=bot.tools.tools_config,
-                q_table=bot.q_learning.q_table,
+                bot_specific_data=bot.get_bot_specific_data(),
                 statistics=bot.statistics
             )
             self.profile_manager.save_profile(profile)
-
 
 if __name__ == "__main__":
     game_env = GameEnvironment()
