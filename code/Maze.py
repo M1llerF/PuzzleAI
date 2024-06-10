@@ -143,28 +143,56 @@ class Maze:
 
         self.set_start(*self.start)
         self.set_goal(*self.end)
-
-    def display_with_bot(self, bot_position):
-        """ Display the maze with the bot's current position highlighted. """
-        self.ax.cla()  # Clear the current axis to prepare for a new drawing
-        color_grid = np.array(self.grid, dtype=int)
-        color_grid[self.start] = 2
-        color_grid[self.end] = 3
-        color_grid[bot_position] = 4
-
-        # Using a simple colormap and normalization
-        cmap = plt.cm.viridis
-        norm = plt.Normalize(0, 4)
         
-        self.ax.imshow(color_grid, cmap=cmap, norm=norm, interpolation='none')
-        
-        self.ax.set_xticks(np.arange(-.5, self.width, 1), minor=True)
-        self.ax.set_yticks(np.arange(-.5, self.height, 1), minor=True)
-        self.ax.grid(which='minor', color='w', linestyle='-', linewidth=2)
-        self.ax.set_xticklabels([])
-        self.ax.set_yticklabels([])
+    def display_with_bot(self, bot_position, canvas):
+        canvas.delete("all")
+        cell_width = canvas.winfo_width() / self.width
+        cell_height = canvas.winfo_height() / self.height
 
-        plt.pause(0.01)  # Pause briefly to update the plot. Default is 0.01 seconds.
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.grid[y][x] == 1:
+                    canvas.create_rectangle(x * cell_width, y * cell_height,
+                                            (x + 1) * cell_width, (y + 1) * cell_height,
+                                            fill="black")
+
+        start = self.get_start()
+        end = self.end
+
+        canvas.create_rectangle(start[1] * cell_width, start[0] * cell_height,
+                                (start[1] + 1) * cell_width, (start[0] + 1) * cell_height,
+                                fill="blue")
+
+        canvas.create_rectangle(end[1] * cell_width, end[0] * cell_height,
+                                (end[1] + 1) * cell_width, (end[0] + 1) * cell_height,
+                                fill="green")
+
+        canvas.create_oval(bot_position[1] * cell_width, bot_position[0] * cell_height,
+                        (bot_position[1] + 1) * cell_width, (bot_position[0] + 1) * cell_height,
+                        fill="red")
+
+
+    # def display_with_bot(self, bot_position):
+    #     """ Display the maze with the bot's current position highlighted. """
+    #     self.ax.cla()  # Clear the current axis to prepare for a new drawing
+    #     color_grid = np.array(self.grid, dtype=int)
+    #     color_grid[self.start] = 2
+    #     color_grid[self.end] = 3
+    #     color_grid[bot_position] = 4
+
+    #     # Using a simple colormap and normalization
+    #     cmap = plt.cm.viridis
+    #     norm = plt.Normalize(0, 4)
+        
+    #     self.ax.imshow(color_grid, cmap=cmap, norm=norm, interpolation='none')
+        
+    #     self.ax.set_xticks(np.arange(-.5, self.width, 1), minor=True)
+    #     self.ax.set_yticks(np.arange(-.5, self.height, 1), minor=True)
+    #     self.ax.grid(which='minor', color='w', linestyle='-', linewidth=2)
+    #     self.ax.set_xticklabels([])
+    #     self.ax.set_yticklabels([])
+
+    #     plt.pause(0.01)  # Pause briefly to update the plot. Default is 0.01 seconds.
     
 
     def display_with_heatmap(self, heatmap_file):

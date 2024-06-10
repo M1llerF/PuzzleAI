@@ -25,19 +25,21 @@ class GameEnvironment:
         # Register other bots as needed
         self.bot_factory.register_bot('QLearningBot', QLearningBot)
         # self.bot_factory.register_bot('AnotherBot', AnotherBot)
-
+        
     def setup_new_profile(self, profile_name, bot_type, config, reward_config, tools_config):
         profile = BotProfile(profile_name, bot_type, config, reward_config, tools_config, BotStatistics(), {})
         self.profile_manager.save_profile(profile)
         self.setup_bots(profile.bot_type, profile.name, config, reward_config, tools_config, profile.statistics, profile.bot_specific_data)
 
-    def game_loop(self, rounds, bot_index, progress_callback):
+    def game_loop(self, rounds, bot_index, progress_callback, visualize=False, visualization_window=None):
         print("(From GameEnvironment.py, GameEnvironment, game_loop(...))")
         bot = self.bots[bot_index]
         for i in range(rounds):
             bot.run_episode()
             self.reset_environment()
             progress_callback(i + 1, rounds)
+            if visualize and visualization_window:
+                visualization_window.update_visualization()
 
     def reset_environment(self):
         self.maze.setup_simple_maze()

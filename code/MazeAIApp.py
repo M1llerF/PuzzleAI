@@ -1,6 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
+import matplotlib.colors as mcolors
+
+
+from matplotlib import pyplot as plt
+import numpy as np
 from GameEnvironment import GameEnvironment
 from QLearningBot import QLearningConfig
 from RewardSystem import RewardConfig
@@ -199,6 +204,7 @@ class BotTrainingFrame(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        self.visualization_window = None
         ttk.Label(self, text="Bot Training", font=("TkDefaultFont", 20)).pack(pady=10, padx=10)
 
         ttk.Label(self, text="Select Profile:").pack()
@@ -214,6 +220,8 @@ class BotTrainingFrame(tk.Frame):
         self.training_progress.pack(pady=10)
         self.log_output = tk.Text(self, height=10, width=50)
         self.log_output.pack(pady=10)
+        
+        ttk.Button(self, text="Open Visualization", command=self.open_visualization).pack(pady=10)
 
         self.load_profiles()
 
@@ -255,6 +263,121 @@ class BotTrainingFrame(tk.Frame):
         self.log_output.insert(tk.END, f"Completed round {completed_rounds}/{total_rounds}\n")
         if completed_rounds == total_rounds:
             self.log_output.insert(tk.END, "Training completed.\n")
+
+    def open_visualization(self):
+        selected_profile = self.profile_select.get()
+        if not selected_profile:
+            messagebox.showerror("Error", "No profile selected.")
+            return
+
+        if self.visualization_window and self.visualization_window.winfo_exists():
+            self.visualization_window.focus()
+        else:
+            self.visualization_window = VisualizationWindow(self.controller.root, self.controller.game_env, selected_profile)
+class VisualizationWindow(tk.Toplevel):
+    def __init__(self, parent, game_env, profile_name):
+        super().__init__(parent)
+        self.game_env = game_env
+        self.profile_name = profile_name
+        self.title("Maze Visualization")
+        self.geometry("600x600")
+
+        self.canvas = tk.Canvas(self, width=500, height=500, bg="white")
+        self.canvas.pack(pady=20)
+
+        self.after_id = None
+        self.visualize = True
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        self.update_visualization()
+
+    def update_visualization(self):
+        if not self.visualize:
+            return
+
+        self.canvas.delete("all")
+        bot = self.game_env.bots[0]  # Assuming single bot for now
+        bot_position = bot.position
+        print("PRINTING:", bot.statistics.get_visited_positions())
+        self.display_with_bot_and_heatmap(bot_position, bot.statistics.get_visited_positions())
+        self.after_id = self.after(100, self.update_visualization)
+
+    def display_with_bot(self, bot_position):
+        """ Display the maze with the bot's current position highlighted. """
+        maze = self.game_env.maze
+        cell_width = self.canvas.winfo_width() / maze.width
+        cell_height = self.canvas.winfo_height() / maze.height
+
+        for y in range(maze.height):
+            for x in range(maze.width):
+                if maze.grid[y][x] == 1:
+                    self.canvas.create_rectangle(x * cell_width, y * cell_height,
+                                                 (x + 1) * cell_width, (y + 1) * cell_height,
+                                                 fill="black")
+
+        start = maze.get_start()
+        end = maze.end
+
+        self.canvas.create_rectangle(start[1] * cell_width, start[0] * cell_height,
+                                     (start[1] + 1) * cell_width, (start[0] + 1) * cell_height,
+                                     fill="blue")
+
+        self.canvas.create_rectangle(end[1] * cell_width, end[0] * cell_height,
+                                     (end[1] + 1) * cell_width, (end[0] + 1) * cell_height,
+                                     fill="green")
+
+        self.canvas.create_oval(bot_position[1] * cell_width, bot_position[0] * cell_height,
+                                (bot_position[1] + 1) * cell_width, (bot_position[0] + 1) * cell_height,
+                                fill="red")
+
+    def display_with_bot_and_heatmap(self, bot_position, visited_positions):
+        """ Display the maze with the bot's current position highlighted and heatmap overlay. """
+        maze = self.game_env.maze
+        cell_width = self.canvas.winfo_width() / maze.width
+        cell_height = self.canvas.winfo_height() / maze.height
+
+        heatmap = np.zeros((maze.height, maze.width))
+        for (x, y), count in visited_positions.items():
+            heatmap[x, y] = count
+
+        max_heat = heatmap.max() if heatmap.max() > 0 else 1  # Avoid division by zero
+        cmap = plt.cm.Reds
+
+        for y in range(maze.height):
+            for x in range(maze.width):
+                if maze.grid[y][x] == 1:
+                    self.canvas.create_rectangle(x * cell_width, y * cell_height,
+                                                 (x + 1) * cell_width, (y + 1) * cell_height,
+                                                 fill="black")
+                else:
+                    heat_value = heatmap[y, x] / max_heat
+                    if heat_value > 0:
+                        color = mcolors.to_hex(cmap(heat_value))
+                        self.canvas.create_rectangle(x * cell_width, y * cell_height,
+                                                     (x + 1) * cell_width, (y + 1) * cell_height,
+                                                     fill=color, outline=color)
+
+        start = maze.get_start()
+        end = maze.end
+
+        self.canvas.create_rectangle(start[1] * cell_width, start[0] * cell_height,
+                                     (start[1] + 1) * cell_width, (start[0] + 1) * cell_height,
+                                     fill="blue")
+
+        self.canvas.create_rectangle(end[1] * cell_width, end[0] * cell_height,
+                                     (end[1] + 1) * cell_width, (end[0] + 1) * cell_height,
+                                     fill="green")
+
+        self.canvas.create_oval(bot_position[1] * cell_width, bot_position[0] * cell_height,
+                                (bot_position[1] + 1) * cell_width, (bot_position[0] + 1) * cell_height,
+                                fill="red")
+        
+    def on_close(self):
+        self.visualize = False
+        if self.after_id is not None:
+            self.after_cancel(self.after_id)
+        self.destroy()
+
 
 class VisualizationsFrame(tk.Frame):
     def __init__(self, parent, controller):

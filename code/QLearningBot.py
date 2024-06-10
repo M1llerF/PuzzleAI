@@ -231,6 +231,7 @@ class QLearningBot(BaseBot):
                 continue
 
             self.statistics.update_last_visited(self.position)
+            self.statistics.update_visited_positions(self.position)
             reward += self.reward_system.get_reward(new_position, self.tools.get_optimal_path_info(self.position, self.maze.end), self.tools.get_optimal_path_info(self.position, self.maze.end, output='length'), self.statistics.get_visited_positions())
 
             if new_position in self.statistics.get_visited_positions():
@@ -332,6 +333,7 @@ class QLearningBot(BaseBot):
                 #print(f"Hit wall, Reward: {reward}, Total Reward: {self.total_reward}")
                 continue
 
+            self.statistics.update_visited_positions(self.position)
             self.statistics.update_last_visited(self.position)
             reward += self.reward_system.get_reward(new_position, self.tools.get_optimal_path_info(self.position, self.maze.end), self.tools.get_optimal_path_info(self.position, self.maze.end, output='length'), self.statistics.get_visited_positions())
 
