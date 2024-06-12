@@ -21,12 +21,10 @@ class BotStatistics:
     def update_visited_positions(self, position):
         """Update the visited positions."""
         self.visited_positions[position] = self.visited_positions.get(position, 0) + 1
-        print(f"Updated visited_positions: {self.visited_positions}")  # Debug print
 
 
     def get_visited_positions(self):
         """Get the visited positions."""
-        print(f"Returning visited_positions: {self.visited_positions}")  # Debug print
         return self.visited_positions
 
     def update_last_visited(self, position):

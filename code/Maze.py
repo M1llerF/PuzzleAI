@@ -45,7 +45,6 @@ class Maze:
         return True  # Placeholder for now
     
     def get_start(self):
-        print("(From Maze.py, get_start(...)) Printing start: ",self.start)
         return self.start
     
     def set_start(self, x, y):
@@ -85,8 +84,10 @@ class Maze:
     #     self.set_goal(*self.end)
     def setup_simple_maze(self):
         # Randomly adjust width and height
-        self.width = random.randrange(self.width, self.width + 3, 1)
-        self.height = random.randrange(self.height, self.height + 3, 1)
+        # self.width = random.randrange(self.width, self.width + 3, 1)
+        # self.height = random.randrange(self.height, self.height + 3, 1)
+        self.width = 12
+        self.height = 12
 
         # Initialize grid with walls
         self.grid = [[1 for _ in range(self.width)] for _ in range(self.height)]

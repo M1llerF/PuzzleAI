@@ -33,6 +33,8 @@ class GameEnvironment:
 
     def game_loop(self, rounds, bot_index, progress_callback, visualize=False, visualization_window=None):
         print("(From GameEnvironment.py, GameEnvironment, game_loop(...))")
+        print(bot_index)
+        print(self.bots)
         bot = self.bots[bot_index]
         for i in range(rounds):
             bot.run_episode()

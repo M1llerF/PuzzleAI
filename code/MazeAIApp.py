@@ -48,6 +48,7 @@ class MazeAIApp:
     def show_profile_management(self):
         self.show_frame("ProfileManagementFrame")
 
+
     def show_create_edit_profile(self, profile=None):
         frame = self.frames["CreateEditProfileFrame"]
         frame.load_profile(profile)
@@ -253,6 +254,7 @@ class BotTrainingFrame(tk.Frame):
         training_thread = threading.Thread(target=self.run_training, args=(rounds, profile_index))
         training_thread.start()
 
+
     def run_training(self, rounds, profile_index):
         for i in range(rounds):
             self.controller.game_env.game_loop(1, profile_index, self.update_progress)
@@ -298,7 +300,6 @@ class VisualizationWindow(tk.Toplevel):
         self.canvas.delete("all")
         bot = self.game_env.bots[0]  # Assuming single bot for now
         bot_position = bot.position
-        print("PRINTING:", bot.statistics.get_visited_positions())
         self.display_with_bot_and_heatmap(bot_position, bot.statistics.get_visited_positions())
         self.after_id = self.after(100, self.update_visualization)
 

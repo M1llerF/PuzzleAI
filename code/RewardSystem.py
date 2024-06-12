@@ -68,9 +68,7 @@ class RewardConfig:
 class RewardSystem:
     def __init__(self, maze, reward_config):
         self.maze = maze
-        self.reward_config = reward_config #! Not actually using
-        # print(f"RewardConfig type: {type(self.reward_config)}")  # Debugging print
-        # self.reward_config.test_print("From reward system")
+        self.reward_config = reward_config
         self.cumulative_reward = 0
         self.times_hit_wall = 0
         self.times_revisited_square = 0
@@ -112,6 +110,7 @@ class RewardSystem:
             elif key == 'per_move_penalty':
                 reward += self.evaluate_expression(expr, **context)
         
+        print(f"New Position: {new_position}, Total Reward: {reward}")  # Detailed debug statement
         return reward
 
     #? Should be in tools
