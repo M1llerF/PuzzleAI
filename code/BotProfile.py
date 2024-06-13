@@ -1,3 +1,4 @@
+import os
 import pickle
 
 from QLearningBot import QLearningConfig
@@ -79,21 +80,44 @@ class ProfileManager:
         self.profile_directory = profile_directory
 
     def save_profile(self, profile):
-        """Save a profile to a pickle file."""
+        """Save a profile to a pickle file and create necessary files."""
         print("SAVE PROFILE CALLED")
-        filename = f"{self.profile_directory}/{profile.name}.pkl"
+        profile_dir = f"{self.profile_directory}/{profile.name}"
+        os.makedirs(profile_dir, exist_ok=True)
+        filename = f"{profile_dir}/profile.pkl"
+        
+        # Save the profile data
         with open(filename, 'wb') as f:
             pickle.dump(profile.to_dict(), f)
+        
+        # Create empty Q-table file if it doesn't exist
+        q_table_file = f"{profile_dir}/q_table.pkl"
+        if not os.path.exists(q_table_file):
+            with open(q_table_file, 'wb') as f:
+                pickle.dump({}, f)
+        
+        # Create empty reward data file if it doesn't exist
+        reward_file = f"{profile_dir}/SimulationRewards.txt"
+        if not os.path.exists(reward_file):
+            with open(reward_file, 'w') as f:
+                f.write("")  # Write an empty string to create the file
+
+        # Create empty heatmap data file if it doesn't exist
+        heatmap_file = f"{profile_dir}/HeatmapData.txt"
+        if not os.path.exists(heatmap_file):
+            with open(heatmap_file, 'w') as f:
+                f.write("")  # Write an empty string to create the file
+
 
     def load_profile(self, profile_name):
         """Load a profile from a pickle file."""
         print("LOAD PROFILE CALLED")
-        filename = f"{self.profile_directory}/{profile_name}.pkl"
+        profile_dir = f"{self.profile_directory}/{profile_name}"
+        filename = f"{profile_dir}/profile.pkl"
         with open(filename, 'rb') as f:
             data = pickle.load(f)
         return BotProfile.from_dict(data)
-
+    
     def list_profiles(self):
         """List all available profiles."""
-        import os
-        return [f.replace('.pkl', '') for f in os.listdir(self.profile_directory) if f.endswith('.pkl')]
+        return [d for d in os.listdir(self.profile_directory) if os.path.isdir(os.path.join(self.profile_directory, d))]

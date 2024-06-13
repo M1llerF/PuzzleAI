@@ -31,15 +31,11 @@ class GameEnvironment:
         self.profile_manager.save_profile(profile)
         self.setup_bots(profile.bot_type, profile.name, config, reward_config, tools_config, profile.statistics, profile.bot_specific_data)
 
-    def game_loop(self, rounds, bot_index, progress_callback, visualize=False, visualization_window=None):
-        print("(From GameEnvironment.py, GameEnvironment, game_loop(...))")
-        print(bot_index)
-        print(self.bots)
+    def game_loop(self, rounds, bot_index, visualize=False, visualization_window=None):
         bot = self.bots[bot_index]
         for i in range(rounds):
             bot.run_episode()
             self.reset_environment()
-            progress_callback(i + 1, rounds)
             if visualize and visualization_window:
                 visualization_window.update_visualization()
 
@@ -53,15 +49,26 @@ class GameEnvironment:
         self.apply_profile(profile)
 
     def apply_profile(self, profile):
-        bot = self.bot_factory.create_bot(profile.bot_type, profile.name, profile.config, profile.reward_config, profile.tools_config, profile.statistics, profile.bot_specific_data)
-        print("Applying profile:")
-        print("Config:")
-        print(profile.config.__dict__)
-        print("Tools Config:")
-        print(profile.tools_config.__dict__)
-        print("Statistics:")
-        print(profile.statistics.__dict__)
+        bot = self.bot_factory.create_bot(
+            profile.bot_type,
+            profile.name,
+            profile.config,
+            profile.reward_config,
+            profile.tools_config,
+            profile.statistics,
+            profile.bot_specific_data
+        )
         self.bots.append(bot)
+
+
+        # print("Applying profile:")
+        # print("Config:")
+        # print(profile.config.__dict__)
+        # print("Tools Config:")
+        # print(profile.tools_config.__dict__)
+        # print("Statistics:")
+        # print(profile.statistics.__dict__)
+
 
     def setup_bots(self, bot_type, bot_name, config, reward_config, tools_config, statistics, bot_specific_data):
         self.bots.append(self.bot_factory.create_bot(bot_type=bot_type, profile_name=bot_name, config=config, reward_config=reward_config, tools_config=tools_config, statistics=statistics, bot_specific_data=bot_specific_data))

@@ -42,7 +42,7 @@ class QLearning:
         new_value = old_value + self.lr * (reward + self.gamma * future_optimal_value - old_value)
         self.q_table[state_key][action] = new_value
         
-        print(f"State: {state_key}, Action: {action}, Reward: {reward}, New Q-value: {new_value}")  # Debug statement
+        #print(f"State: {state_key}, Action: {action}, Reward: {reward}, New Q-value: {new_value}")  # Debug statement
 
     
     def choose_action(self, state):
@@ -57,18 +57,22 @@ class QLearning:
             return np.random.randint(self.num_actions)
         return np.argmax(self.q_table[state_key])
     
-    def save_q_table(self):
-        print("Saving Q-table...")
+    def save_q_table(self, profile_name):
         """Save the Q-table to a file."""
-        os.makedirs('code/NonCodeFiles', exist_ok=True)
-        with open('code/NonCodeFiles/q_table.pkl', 'wb') as f:
+        profile_dir = f"profiles/{profile_name}"
+        os.makedirs(profile_dir, exist_ok=True)
+        q_table_path = f"{profile_dir}/q_table.pkl"
+        #print(f"Saving Q-table to {q_table_path}...")
+        with open(q_table_path, 'wb') as f:
             pickle.dump(self.q_table, f)
-        print("Q-table saved.")
+        #print("Q-table saved.")
     
-    def load_q_table(self):
+    def load_q_table(self, profile_name):
         """Load the Q-table from a file."""
+        profile_dir = f"profiles/{profile_name}"
+        q_table_path = f"{profile_dir}/q_table.pkl"
         try:
-            with open('code/NonCodeFiles/q_table.pkl', 'rb') as f:
+            with open(q_table_path, 'rb') as f:
                 self.q_table = pickle.load(f)
             print("Q-table loaded.")
         except FileNotFoundError:
@@ -94,14 +98,14 @@ class QLearningBot(BaseBot):
         self.total_reward = 0
         self.position = maze.get_start()
         self.state = self.calculate_state()
-        self.q_learning.load_q_table()  # Load Q-table when initializing
+        self.q_learning.load_q_table(profile_name)  # Load Q-table when initializing
     
     def get_bot_specific_data(self):
         return {'q_table': self.q_learning.q_table}
     
     def initialize_specific_data(self, data):
         self.q_learning.q_table = data.get('q_table', {})
-        self.q_learning.load_q_table() # Load the Q-table from a file
+        self.q_learning.load_q_table(self.profile_name) # Load the Q-table from a file
 
     def calculate_state(self):
         """Calculate the state based on the position"""
@@ -112,7 +116,7 @@ class QLearningBot(BaseBot):
         return (position_index, tuple(wall_distances.values()), visited, distance_to_goal, goal_direction)
     
     def run_episode(self):
-        print("(From QLearningBot.py, QLearningBot(...), run_episode(...)): Starting episode")
+        #print("(From QLearningBot.py, QLearningBot(...), run_episode(...)): Starting episode")
 
         step_limit = 1000 * self.tools.get_optimal_path_info(self.maze.start, self.maze.end, output='length')
         steps = 0
@@ -160,16 +164,21 @@ class QLearningBot(BaseBot):
             if steps > step_limit:
                 print("Potential infinite loop detected. Breaking out.")
                 break
-            with open('code/NonCodeFiles/SimulationRewards.txt', 'a') as f:
-                f.write(f"{self.total_reward}\n")
+
+            profile_dir = f"profiles/{self.profile_name}"
+            os.makedirs(profile_dir, exist_ok=True)
+            simulation_rewards_path = f"{profile_dir}/SimulationRewards.txt"
             
             if self.statistics.total_steps > step_limit:
                 print("Step limit reached: ", self.statistics.total_steps, ". Resetting bot.")
                 self.statistics.total_steps = 0
                 self.reset_bot()
 
-        self.q_learning.save_q_table()  # Save Q-table after each episode
-        print(f"Total reward: {self.total_reward}")  # Debug statement
+        with open(simulation_rewards_path, 'a') as f:
+            f.write(f"{self.total_reward}\n")
+            
+        self.q_learning.save_q_table(self.profile_name)  # Save Q-table after each episode
+        #print(f"Total reward: {self.total_reward}")  # Debug statement
 
     def reset_bot(self):
         self.position = self.maze.start
@@ -177,15 +186,19 @@ class QLearningBot(BaseBot):
         self.total_reward = 0
         self.state = self.calculate_state()
         self.q_learning.reset()
-        self.q_learning.save_q_table()  # Save Q-table before resetting
+        self.q_learning.save_q_table(self.profile_name)  # Save Q-table before resetting
     
     def save_heatmap_data(self):
         """Save the heatmap data to a file."""
+        profile_dir = f"profile/{self.profile_name}"
+        os.makedirs(profile_dir, exist_ok=True)
+        heatmap_path = f"{profile_dir}/HeatmapData.txt"
+
         heatmap_data = self.statistics.get_visited_positions()
 
         existing_data = {}
         try:
-            with open('code/NonCodeFiles/HeatmapData.txt', 'r') as f:
+            with open(heatmap_path, 'r') as f:
                 for line in f:
                     x, y, count = map(int, line.strip().split(','))
                     existing_data[(x, y)] = count
@@ -198,7 +211,7 @@ class QLearningBot(BaseBot):
             else:
                 existing_data[position] = count
 
-        with open('code/NonCodeFiles/HeatmapData.txt', 'w') as f:
+        with open(heatmap_path, 'w') as f:
             for position, count in existing_data.items():
                 f.write(f"{position[0]},{position[1]},{count}\n")
 

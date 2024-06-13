@@ -1,3 +1,5 @@
+import os
+import shutil
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
@@ -44,6 +46,10 @@ class MazeAIApp:
     def show_frame(self, page_name):
         frame = self.frames[page_name]
         frame.tkraise()
+        if page_name == "BotTrainingFrame":
+            frame.clear_profile_selection()
+
+    
 
     def show_profile_management(self):
         self.show_frame("ProfileManagementFrame")
@@ -80,6 +86,8 @@ class ProfileManagementFrame(tk.Frame):
         self.load_profiles()
         self.profile_list.bind("<Double-Button-1>", self.on_profile_double_click)
 
+        ttk.Button(self, text="Delete Profile", command=self.delete_profile).pack(pady=10)
+
     def load_profiles(self):
         profiles = self.controller.game_env.profile_manager.list_profiles()
         self.profile_list.delete(0, tk.END)
@@ -93,13 +101,37 @@ class ProfileManagementFrame(tk.Frame):
         selected_index = self.profile_list.curselection()
         if selected_index:
             profile_name = self.profile_list.get(selected_index)
-            print(profile_name)
             self.load_profile(profile_name)
 
     def load_profile(self, profile_name):
         profile = self.controller.game_env.profile_manager.load_profile(profile_name)
         self.controller.game_env.apply_profile(profile)
         self.controller.show_create_edit_profile(profile)
+
+    def delete_profile(self):
+        selected_index = self.profile_list.curselection()
+        if not selected_index:
+            messagebox.showerror("Error", "No profile selected.")
+            return
+        
+        profile_name = self.profile_list.get(selected_index)
+        profile_dir = f"{self.controller.game_env.profile_manager.profile_directory}/{profile_name}"
+
+        try:
+            if os.path.exists(profile_dir):
+                shutil.rmtree(profile_dir)
+            profile_pkl = f"{self.controller.game_env.profile_manager.profile_directory}/{profile_name}.pkl"
+            if os.path.exists(profile_pkl):
+                os.remove(profile_pkl)
+            messagebox.showinfo("Success", f"Profile '{profile_name}' has been deleted.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to delete profile '{profile_name}'. Error: {e}")
+        finally:
+            self.controller.frames["ProfileManagementFrame"].load_profiles()  # Update the profile list
+            self.controller.frames["BotTrainingFrame"].load_profiles()
+
+
+        
 
 class CreateEditProfileFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -173,6 +205,7 @@ class CreateEditProfileFrame(tk.Frame):
                 for reward, var in self.rewards.items():
                     var.set(profile.reward_config.reward_modifiers.get(reward, ""))
 
+
     def save_profile(self):
         profile_name = self.profile_name_entry.get()
         bot_type = self.bot_type_entry.get()
@@ -196,6 +229,9 @@ class CreateEditProfileFrame(tk.Frame):
         self.controller.game_env.setup_new_profile(profile_name, bot_type, config, reward_config_obj, tools_config_obj)
 
         messagebox.showinfo("Profile Saved", "Profile has been saved.")
+
+        self.controller.frames["ProfileManagementFrame"].load_profiles()  # Update the profile list
+        self.controller.frames["BotTrainingFrame"].load_profiles()
         self.controller.show_profile_management()
 
     def cancel(self):
@@ -226,6 +262,9 @@ class BotTrainingFrame(tk.Frame):
 
         self.load_profiles()
 
+    def clear_profile_selection(self):
+        self.profile_select.set("")
+
     def load_profiles(self):
         profiles = self.controller.game_env.profile_manager.list_profiles()
         self.profile_select['values'] = profiles
@@ -236,10 +275,10 @@ class BotTrainingFrame(tk.Frame):
             messagebox.showerror("Error", "No profile selected.")
             return
 
-        profiles = self.controller.game_env.profile_manager.list_profiles()
+
         profile = self.controller.game_env.profile_manager.load_profile(selected_profile)
-        profile_index = profiles.index(selected_profile)
         self.controller.game_env.apply_profile(profile)
+        profile_index = len(self.controller.game_env.bots) - 1
 
         rounds = self.rounds_entry.get()
         if not rounds.isdigit():
@@ -251,36 +290,42 @@ class BotTrainingFrame(tk.Frame):
         self.training_progress['value'] = 0
         self.log_output.insert(tk.END, f"Training started for {selected_profile} with {rounds} rounds...\n")
 
-        training_thread = threading.Thread(target=self.run_training, args=(rounds, profile_index))
+        training_thread = threading.Thread(target=self.run_training, args=(rounds, profile_index, selected_profile))
         training_thread.start()
 
-
-    def run_training(self, rounds, profile_index):
+    def run_training(self, rounds, profile_index, selected_profile):
+        profile_dir = f"{self.controller.game_env.profile_manager.profile_directory}/{selected_profile}"
         for i in range(rounds):
-            self.controller.game_env.game_loop(1, profile_index, self.update_progress)
+            self.controller.game_env.game_loop(1, profile_index, profile_dir)
             self.controller.root.after(0, self.update_progress, i + 1, rounds)
 
     def update_progress(self, completed_rounds, total_rounds):
         self.training_progress['value'] = completed_rounds
         self.log_output.insert(tk.END, f"Completed round {completed_rounds}/{total_rounds}\n")
+        self.log_output.see(tk.END)  # Scroll to the end of the log output
         if completed_rounds == total_rounds:
             self.log_output.insert(tk.END, "Training completed.\n")
+            self.log_output.see(tk.END)  # Scroll to the end of the log output
+
 
     def open_visualization(self):
         selected_profile = self.profile_select.get()
         if not selected_profile:
             messagebox.showerror("Error", "No profile selected.")
             return
+        
+        profile_index = self.controller.game_env.profile_manager.list_profiles().index(selected_profile)
 
         if self.visualization_window and self.visualization_window.winfo_exists():
             self.visualization_window.focus()
         else:
-            self.visualization_window = VisualizationWindow(self.controller.root, self.controller.game_env, selected_profile)
+            self.visualization_window = VisualizationWindow(self.controller.root, self.controller.game_env, selected_profile, profile_index)
 class VisualizationWindow(tk.Toplevel):
-    def __init__(self, parent, game_env, profile_name):
+    def __init__(self, parent, game_env, profile_name, profile_index):
         super().__init__(parent)
         self.game_env = game_env
         self.profile_name = profile_name
+        self.profile_index = profile_index
         self.title("Maze Visualization")
         self.geometry("600x600")
 
@@ -298,7 +343,7 @@ class VisualizationWindow(tk.Toplevel):
             return
 
         self.canvas.delete("all")
-        bot = self.game_env.bots[0]  # Assuming single bot for now
+        bot = self.game_env.bots[self.profile_index]  # Assuming single bot for now
         bot_position = bot.position
         self.display_with_bot_and_heatmap(bot_position, bot.statistics.get_visited_positions())
         self.after_id = self.after(100, self.update_visualization)
@@ -379,7 +424,6 @@ class VisualizationWindow(tk.Toplevel):
             self.after_cancel(self.after_id)
         self.destroy()
 
-
 class VisualizationsFrame(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -401,6 +445,7 @@ class VisualizationsFrame(tk.Frame):
         ttk.Label(self, text="Statistics:").pack(pady=10)
         self.statistics_output = tk.Text(self, height=5, width=50)
         self.statistics_output.pack(pady=10)
+
 
 if __name__ == "__main__":
     root = tk.Tk()

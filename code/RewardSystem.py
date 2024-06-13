@@ -110,7 +110,7 @@ class RewardSystem:
             elif key == 'per_move_penalty':
                 reward += self.evaluate_expression(expr, **context)
         
-        print(f"New Position: {new_position}, Total Reward: {reward}")  # Detailed debug statement
+        #print(f"New Position: {new_position}, Total Reward: {reward}")  # Detailed debug statement
         return reward
 
     #? Should be in tools
