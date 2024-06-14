@@ -177,6 +177,7 @@ class CreateEditProfileFrame(tk.Frame):
             'per_move_penalty': tk.StringVar(value="-1 * (optimal_length // 100)")
         }
 
+
         for reward, var in self.rewards.items():
             ttk.Label(self, text=reward).pack()
             ttk.Entry(self, textvariable=var).pack()
@@ -213,6 +214,7 @@ class CreateEditProfileFrame(tk.Frame):
         discount_factor = self.discount_factor_entry.get()
         tools_config = {tool: var.get() for tool, var in self.tools.items()}
         rewards_config = {reward: var.get() for reward, var in self.rewards.items()}
+
 
         if bot_type == "QLearningBot":
             config = QLearningConfig(float(learning_rate), float(discount_factor))
@@ -277,8 +279,8 @@ class BotTrainingFrame(tk.Frame):
 
 
         profile = self.controller.game_env.profile_manager.load_profile(selected_profile)
-        self.controller.game_env.apply_profile(profile)
-        profile_index = len(self.controller.game_env.bots) - 1
+        profile_index = self.controller.game_env.apply_profile(profile) # Issue is that when we append a profile, if the profile was at index #, it will be put as index 1
+        #profile_index = len(self.controller.game_env.bots) - 1
 
         rounds = self.rounds_entry.get()
         if not rounds.isdigit():
@@ -314,7 +316,9 @@ class BotTrainingFrame(tk.Frame):
             messagebox.showerror("Error", "No profile selected.")
             return
         
-        profile_index = self.controller.game_env.profile_manager.list_profiles().index(selected_profile)
+        profile = self.controller.game_env.profile_manager.load_profile(selected_profile)
+        profile_index = self.controller.game_env.apply_profile(profile)
+        
 
         if self.visualization_window and self.visualization_window.winfo_exists():
             self.visualization_window.focus()
@@ -445,7 +449,6 @@ class VisualizationsFrame(tk.Frame):
         ttk.Label(self, text="Statistics:").pack(pady=10)
         self.statistics_output = tk.Text(self, height=5, width=50)
         self.statistics_output.pack(pady=10)
-
 
 if __name__ == "__main__":
     root = tk.Tk()

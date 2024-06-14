@@ -49,16 +49,30 @@ class GameEnvironment:
         self.apply_profile(profile)
 
     def apply_profile(self, profile):
-        bot = self.bot_factory.create_bot(
-            profile.bot_type,
-            profile.name,
-            profile.config,
-            profile.reward_config,
-            profile.tools_config,
-            profile.statistics,
-            profile.bot_specific_data
-        )
-        self.bots.append(bot)
+        # Check if a bot with the same profile name already exists
+        bot_index = next((i for i, bot in enumerate(self.bots) if bot.profile_name == profile.name), -1)
+        if bot_index == -1:
+            # If the bot does not exist, create a new one and append it
+            bot = self.bot_factory.create_bot(
+                profile.bot_type,
+                profile.name,
+                profile.config,
+                profile.reward_config,
+                profile.tools_config,
+                profile.statistics,
+                profile.bot_specific_data
+            )
+            self.bots.append(bot)
+            bot_index = len(self.bots) - 1
+        else:
+            bot = self.bots[bot_index]
+            bot.config = profile.config
+            bot.reward_config = profile.reward_config
+            bot.tools_config = profile.tools_config
+            bot.statistics = profile.statistics
+            bot.bot_specific_data = profile.bot_specific_data
+
+        return bot_index
 
 
         # print("Applying profile:")

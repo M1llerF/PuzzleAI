@@ -4,6 +4,8 @@ from BotTools import BotTools
 import pickle as pickle
 import os
 import numpy as np
+import hashlib
+import tempfile
 
 class QLearningConfig:
     def __init__(self, learning_rate=0.1, discount_factor=0.9):
@@ -57,26 +59,53 @@ class QLearning:
             return np.random.randint(self.num_actions)
         return np.argmax(self.q_table[state_key])
     
+    def get_file_checksum(self, file_path):
+        sha256 = hashlib.sha256()
+        with open(file_path, 'rb') as f: 
+            for block in iter(lambda: f.read(4096), b""): 
+                sha256.update(block)
+        return sha256.hexdigest()
+    
     def save_q_table(self, profile_name):
-        """Save the Q-table to a file."""
+        """Save the Q-table to a file atomically"""
         profile_dir = f"profiles/{profile_name}"
         os.makedirs(profile_dir, exist_ok=True)
         q_table_path = f"{profile_dir}/q_table.pkl"
-        #print(f"Saving Q-table to {q_table_path}...")
-        with open(q_table_path, 'wb') as f:
-            pickle.dump(self.q_table, f)
-        #print("Q-table saved.")
+
+        with tempfile.NamedTemporaryFile(delete=False, dir=profile_dir) as tmp_file:
+            pickle.dump(self.q_table, tmp_file)
+            temp_name = tmp_file.name
+        os.replace(temp_name, q_table_path)
+
+        # Save the checksum ("fingerprint") of the Q-table file
+        checksum = self.get_file_checksum(q_table_path)
+        with open(f"{profile_dir}/q_table_checksum.txt", 'w') as f:
+            f.write(checksum)
     
     def load_q_table(self, profile_name):
         """Load the Q-table from a file."""
         profile_dir = f"profiles/{profile_name}"
         q_table_path = f"{profile_dir}/q_table.pkl"
         try:
+            # Check if the checksum matches before loading
+            with open(f"{q_table_path}.checksum", 'r') as f:
+                saved_checksum = f.read()
+            
+            current_checksum = self.get_file_checksum(q_table_path)
+            if saved_checksum != current_checksum:
+                raise ValueError("File checksum does not match.")
+
             with open(q_table_path, 'rb') as f:
                 self.q_table = pickle.load(f)
             print("Q-table loaded.")
         except FileNotFoundError:
             print("Q-table file not found.")
+            self.q_table = {}
+        except ValueError as ve:
+            print(ve)
+            self.q_table = {}
+        except EOFError:
+            print("Q-table file is incomplete or corrupted.")
             self.q_table = {}
     
     def reset(self):
