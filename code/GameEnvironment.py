@@ -35,14 +35,15 @@ class GameEnvironment:
         bot = self.bots[bot_index]
         for i in range(rounds):
             bot.run_episode()
-            self.reset_environment()
+            self.reset_environment(bot_index)
             if visualize and visualization_window:
                 visualization_window.update_visualization()
 
-    def reset_environment(self):
+    def reset_environment(self, bot_index):
         self.maze.setup_simple_maze()
         for bot in self.bots:
-            bot.reset_bot()
+            if(bot == self.bots[bot_index]):
+                bot.reset_bot()
 
     def load_profile(self, profile_name):
         profile = self.profile_manager.load_profile(profile_name)

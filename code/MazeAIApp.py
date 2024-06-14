@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tkinter as tk
@@ -12,6 +13,8 @@ from GameEnvironment import GameEnvironment
 from QLearningBot import QLearningConfig
 from RewardSystem import RewardConfig
 from BotTools import BotToolsConfig
+from Maze import Maze
+from BotStatistics import BotStatistics
 
 class MazeAIApp:
     def __init__(self, root):
@@ -35,7 +38,7 @@ class MazeAIApp:
     def create_main_frames(self):
         self.frames = {}
         
-        for F in (OverviewFrame, ProfileManagementFrame, CreateEditProfileFrame, BotTrainingFrame, VisualizationsFrame):
+        for F in (OverviewFrame, ProfileManagementFrame, CreateEditProfileFrame, BotTrainingFrame, VisualizationFrame):
             page_name = F.__name__
             frame = F(parent=self.root, controller=self)
             self.frames[page_name] = frame
@@ -64,7 +67,7 @@ class MazeAIApp:
         self.show_frame("BotTrainingFrame")
 
     def show_visualizations(self):
-        self.show_frame("VisualizationsFrame")
+        self.show_frame("VisualizationFrame")
 
 class OverviewFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -73,6 +76,7 @@ class OverviewFrame(tk.Frame):
         ttk.Label(self, text="Overview", font=("TkDefaultFont", 20)).pack(pady=10, padx=10)
         ttk.Label(self, text="Recently Used Profiles").pack()
         ttk.Label(self, text="Quick Access to Bots").pack()
+
 
 class ProfileManagementFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -123,15 +127,13 @@ class ProfileManagementFrame(tk.Frame):
             profile_pkl = f"{self.controller.game_env.profile_manager.profile_directory}/{profile_name}.pkl"
             if os.path.exists(profile_pkl):
                 os.remove(profile_pkl)
-            messagebox.showinfo("Success", f"Profile '{profile_name}' has been deleted.")
+            #messagebox.showinfo("Success", f"Profile '{profile_name}' has been deleted.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete profile '{profile_name}'. Error: {e}")
         finally:
             self.controller.frames["ProfileManagementFrame"].load_profiles()  # Update the profile list
             self.controller.frames["BotTrainingFrame"].load_profiles()
-
-
-        
+            self.controller.frames["VisualizationFrame"].load_profiles()
 
 class CreateEditProfileFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -162,6 +164,7 @@ class CreateEditProfileFrame(tk.Frame):
             'detect_walls': tk.BooleanVar(value=True)
         }
         
+        
         for tool, var in self.tools.items():
             ttk.Checkbutton(self, text=tool, variable=var).pack()
 
@@ -176,7 +179,6 @@ class CreateEditProfileFrame(tk.Frame):
             'see_goal_revisit': tk.StringVar(value="5"),
             'per_move_penalty': tk.StringVar(value="-1 * (optimal_length // 100)")
         }
-
 
         for reward, var in self.rewards.items():
             ttk.Label(self, text=reward).pack()
@@ -229,11 +231,24 @@ class CreateEditProfileFrame(tk.Frame):
         reward_config_obj.reward_modifiers.update(rewards_config)
         
         self.controller.game_env.setup_new_profile(profile_name, bot_type, config, reward_config_obj, tools_config_obj)
+        # Initialize the mazes.json file
+        profile_dir = f"profiles/{profile_name}"
+        os.makedirs(profile_dir, exist_ok=True)
+        maze_data_path = f"{profile_dir}/mazes.json"
+        initial_data = {
+            "latest": {},
+            "highest": {"reward": float('-inf')},
+            "lowest": {"reward": float('inf')}
+        }
+        with open(maze_data_path, 'w') as f:
+            json.dump(initial_data, f, indent=4)
 
-        messagebox.showinfo("Profile Saved", "Profile has been saved.")
+        #messagebox.showinfo("Profile Saved", "Profile has been saved.")
 
         self.controller.frames["ProfileManagementFrame"].load_profiles()  # Update the profile list
+        self.controller.frames["VisualizationFrame"].load_profiles()
         self.controller.frames["BotTrainingFrame"].load_profiles()
+
         self.controller.show_profile_management()
 
     def cancel(self):
@@ -346,6 +361,7 @@ class VisualizationWindow(tk.Toplevel):
         if not self.visualize:
             return
 
+
         self.canvas.delete("all")
         bot = self.game_env.bots[self.profile_index]  # Assuming single bot for now
         bot_position = bot.position
@@ -428,27 +444,142 @@ class VisualizationWindow(tk.Toplevel):
             self.after_cancel(self.after_id)
         self.destroy()
 
-class VisualizationsFrame(tk.Frame):
+class VisualizationFrame(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         ttk.Label(self, text="Visualizations", font=("TkDefaultFont", 20)).pack(pady=10, padx=10)
 
+        # Profile Selection
         ttk.Label(self, text="Select Profile:").pack()
         self.profile_select = ttk.Combobox(self)
         self.profile_select.pack()
 
-        ttk.Label(self, text="Heatmap Visualization:").pack(pady=10)
-        self.heatmap_canvas = tk.Canvas(self, width=500, height=500, bg="white")
-        self.heatmap_canvas.pack(pady=10)
+        ttk.Button(self, text="Load Profile", command=self.load_profile).pack(pady=10)
+        # Create a frame to hold the canvases
+        canvas_frame = tk.Frame(self)
+        canvas_frame.pack(pady=10)
 
+        # Heatmap Visualization for Latest Maze
+        ttk.Label(canvas_frame, text="Latest Maze").grid(row=0, column=0, pady=10)
+        self.heatmap_canvas_latest = tk.Canvas(canvas_frame, width=300, height=300, bg="white")
+        self.heatmap_canvas_latest.grid(row=1, column=0, padx=5)
+
+        # Heatmap Visualization for Highest Reward Maze
+        ttk.Label(canvas_frame, text="Highest Reward Maze").grid(row=0, column=1, pady=10)
+        self.heatmap_canvas_highest = tk.Canvas(canvas_frame, width=300, height=300, bg="white")
+        self.heatmap_canvas_highest.grid(row=1, column=1, padx=5)
+
+        # Heatmap Visualization for Lowest Reward Maze
+        ttk.Label(canvas_frame, text="Lowest Reward Maze").grid(row=0, column=2, pady=10)
+        self.heatmap_canvas_lowest = tk.Canvas(canvas_frame, width=300, height=300, bg="white")
+        self.heatmap_canvas_lowest.grid(row=1, column=2, padx=5)
+
+        # Q-Table Visualization
         ttk.Label(self, text="Q-Table Visualization:").pack(pady=10)
         self.qtable_output = tk.Text(self, height=10, width=50)
         self.qtable_output.pack(pady=10)
 
+        # Statistics Display
         ttk.Label(self, text="Statistics:").pack(pady=10)
         self.statistics_output = tk.Text(self, height=5, width=50)
         self.statistics_output.pack(pady=10)
+
+        self.load_profiles()
+
+    def load_profiles(self):
+        profiles = self.controller.game_env.profile_manager.list_profiles()
+        self.profile_select['values'] = profiles
+
+    def load_profile(self):
+        selected_profile = self.profile_select.get()
+        if not selected_profile:
+            messagebox.showerror("Error", "No profile selected.")
+            return
+
+        profile = self.controller.game_env.profile_manager.load_profile(selected_profile)
+        profile_index = self.controller.game_env.apply_profile(profile)
+
+        maze_data_path = f"profiles/{selected_profile}/mazes.json"
+        maze_data = BotStatistics.read_maze_and_heatmap(maze_data_path)
+
+        self.display_heatmap(self.heatmap_canvas_latest, maze_data["latest"]["maze"], maze_data["latest"]["start"], maze_data["latest"]["end"], maze_data["latest"]["heatmap_data"])
+        self.display_heatmap(self.heatmap_canvas_highest, maze_data["highest"]["maze"], maze_data["highest"]["start"], maze_data["highest"]["end"], maze_data["highest"]["heatmap_data"])
+        self.display_heatmap(self.heatmap_canvas_lowest, maze_data["lowest"]["maze"], maze_data["lowest"]["start"], maze_data["lowest"]["end"], maze_data["lowest"]["heatmap_data"])       
+        self.display_qtable(profile)
+        self.display_statistics(profile)
+
+        # Add options to view different mazes
+        self.display_maze_options({
+            "Latest": (maze_data["latest"]["maze"], maze_data["latest"]["start"], maze_data["latest"]["end"], maze_data["latest"]["heatmap_data"], maze_data["latest"]["reward"]),
+            "Highest Reward": (maze_data["highest"]["maze"], maze_data["highest"]["start"], maze_data["highest"]["end"], maze_data["highest"]["heatmap_data"], maze_data["highest"]["reward"]),
+            "Lowest Reward": (maze_data["lowest"]["maze"], maze_data["lowest"]["start"], maze_data["lowest"]["end"], maze_data["lowest"]["heatmap_data"], maze_data["lowest"]["reward"]),
+        })
+
+    def display_maze_options(self, mazes):
+        frame = ttk.Frame(self)
+        frame.pack(pady=10)
+        for name, (maze, start, end, heatmap_data, reward) in mazes.items():
+            ttk.Button(frame, text=f"View {name} Maze (Reward: {reward})", command=lambda m=maze, s=start, e=end, h=heatmap_data: self.display_heatmap(m, s, e, h)).pack(side="left", padx=5)
+
+    def display_heatmap(self, maze, start, end, heatmap_data):
+        # Clear the canvas
+        self.heatmap_canvas.delete("all")
+
+        if maze is None:
+            return
+
+        maze_width = len(maze[0])
+        maze_height = len(maze)
+        cell_width = self.heatmap_canvas.winfo_width() / maze_width
+        cell_height = self.heatmap_canvas.winfo_height() / maze_height
+
+        heatmap = np.zeros((maze_height, maze_width))
+        for (x, y), count in heatmap_data.items():
+            heatmap[x, y] = count
+
+        max_heat = heatmap.max() if heatmap.max() > 0 else 1  # Avoid division by zero
+        cmap = plt.cm.Reds
+
+        for y in range(maze_height):
+            for x in range(maze_width):
+                if maze[y][x] == 1:
+                    self.heatmap_canvas.create_rectangle(x * cell_width, y * cell_height,
+                                                         (x + 1) * cell_width, (y + 1) * cell_height,
+                                                         fill="black")
+                else:
+                    heat_value = heatmap[y, x] / max_heat
+                    if heat_value > 0:
+                        color = mcolors.to_hex(cmap(heat_value))
+                        self.heatmap_canvas.create_rectangle(x * cell_width, y * cell_height,
+                                                             (x + 1) * cell_width, (y + 1) * cell_height,
+                                                             fill=color, outline=color)
+
+        self.heatmap_canvas.create_rectangle(start[1] * cell_width, start[0] * cell_height,
+                                             (start[1] + 1) * cell_width, (start[0] + 1) * cell_height,
+                                             fill="blue")
+
+        self.heatmap_canvas.create_rectangle(end[1] * cell_width, end[0] * cell_height,
+                                             (end[1] + 1) * cell_width, (end[0] + 1) * cell_height,
+                                             fill="green")
+
+    def display_qtable(self, profile):
+        bot = self.controller.game_env.bots[self.profile_select.current()]
+        q_table = bot.q_learning.q_table
+
+        self.qtable_output.delete("1.0", tk.END)
+        for state, actions in q_table.items():
+            self.qtable_output.insert(tk.END, f"State: {state}, Actions: {actions}\n")
+
+    def display_statistics(self, profile):
+        bot = self.controller.game_env.bots[self.profile_select.current()]
+        statistics = bot.statistics
+
+        self.statistics_output.delete("1.0", tk.END)
+        self.statistics_output.insert(tk.END, f"Total Steps: {statistics.total_steps}\n")
+        self.statistics_output.insert(tk.END, f"Non-Repeating Steps: {statistics.non_repeating_steps_taken}\n")
+        self.statistics_output.insert(tk.END, f"Times Revisited Squares: {statistics.times_revisited_squares}\n")
+
 
 if __name__ == "__main__":
     root = tk.Tk()

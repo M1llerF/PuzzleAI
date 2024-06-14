@@ -71,6 +71,7 @@ class QLearning:
         profile_dir = f"profiles/{profile_name}"
         os.makedirs(profile_dir, exist_ok=True)
         q_table_path = f"{profile_dir}/q_table.pkl"
+        print(f"Saving Q-table to {q_table_path}")
 
         with tempfile.NamedTemporaryFile(delete=False, dir=profile_dir) as tmp_file:
             pickle.dump(self.q_table, tmp_file)
@@ -79,34 +80,57 @@ class QLearning:
 
         # Save the checksum ("fingerprint") of the Q-table file
         checksum = self.get_file_checksum(q_table_path)
-        with open(f"{profile_dir}/q_table_checksum.txt", 'w') as f:
+        with open(f"{profile_dir}/q_table.checksum", 'w') as f:
             f.write(checksum)
+        print("Q-table saved.")
     
     def load_q_table(self, profile_name):
         """Load the Q-table from a file."""
         profile_dir = f"profiles/{profile_name}"
         q_table_path = f"{profile_dir}/q_table.pkl"
+        q_table_path_no_ext = f"{profile_dir}/q_table"
+        print(f"Loading Q-table from {q_table_path}")
         try:
-            # Check if the checksum matches before loading
-            with open(f"{q_table_path}.checksum", 'r') as f:
-                saved_checksum = f.read()
+            # Check if the checksum file exists
+            checksum_path = f"{q_table_path_no_ext}.checksum"
+            if os.path.exists(checksum_path):
+                with open(checksum_path, 'r') as f:
+                    saved_checksum = f.read()
+                
+                current_checksum = self.get_file_checksum(q_table_path)
+                if saved_checksum != current_checksum:
+                    raise ValueError("File checksum does not match.")
+                print("Checksum matches.")
+            else:
+                print("Checksum does not match or was not found at file not found at:", checksum_path)
             
-            current_checksum = self.get_file_checksum(q_table_path)
-            if saved_checksum != current_checksum:
-                raise ValueError("File checksum does not match.")
+            
 
             with open(q_table_path, 'rb') as f:
+                print("Loading Q-table from file.")
                 self.q_table = pickle.load(f)
             print("Q-table loaded.")
         except FileNotFoundError:
-            print("Q-table file not found.")
+            print("FileNotFoundError: Q-table file not found.")
             self.q_table = {}
         except ValueError as ve:
-            print(ve)
+            print("ValueError: ", ve)
             self.q_table = {}
         except EOFError:
             print("Q-table file is incomplete or corrupted.")
             self.q_table = {}
+
+    # def load_q_table(self, profile_name):
+    #     """Load the Q-table from a file."""
+    #     profile_dir = f"profiles/{profile_name}"
+    #     q_table_path = f"{profile_dir}/q_table.pkl"
+    #     try:
+    #         with open(q_table_path, 'rb') as f:
+    #             self.q_table = pickle.load(f)
+    #         print("Q-table loaded.")
+    #     except FileNotFoundError:
+    #         print("Q-table file not found.")
+    #         self.q_table = {}
     
     def reset(self):
         """Reset the Q-learning statistics"""
@@ -128,7 +152,13 @@ class QLearningBot(BaseBot):
         self.position = maze.get_start()
         self.state = self.calculate_state()
         self.q_learning.load_q_table(profile_name)  # Load Q-table when initializing
-    
+
+        maze_data_path = f"profiles/{profile_name}/mazes.json"
+        maze_data = self.statistics.load_all_maze_data(maze_data_path)
+
+        self.highest_reward = maze_data["highest"].get("reward", float('-inf'))
+        self.lowest_reward = maze_data["lowest"].get("reward", float('inf'))
+
     def get_bot_specific_data(self):
         return {'q_table': self.q_learning.q_table}
     
@@ -145,8 +175,7 @@ class QLearningBot(BaseBot):
         return (position_index, tuple(wall_distances.values()), visited, distance_to_goal, goal_direction)
     
     def run_episode(self):
-        #print("(From QLearningBot.py, QLearningBot(...), run_episode(...)): Starting episode")
-
+        print("Running episode for ", self.profile_name)
         step_limit = 1000 * self.tools.get_optimal_path_info(self.maze.start, self.maze.end, output='length')
         steps = 0
 
@@ -194,6 +223,9 @@ class QLearningBot(BaseBot):
                 print("Potential infinite loop detected. Breaking out.")
                 break
 
+            heatmap_data = self.statistics.get_visited_positions()
+            self.statistics.save_all_maze_data(self.profile_name, self.maze, heatmap_data, self.total_reward)
+            
             profile_dir = f"profiles/{self.profile_name}"
             os.makedirs(profile_dir, exist_ok=True)
             simulation_rewards_path = f"{profile_dir}/SimulationRewards.txt"
@@ -203,11 +235,15 @@ class QLearningBot(BaseBot):
                 self.statistics.total_steps = 0
                 self.reset_bot()
 
+        heatmap_data = self.statistics.get_visited_positions()
+        self.statistics.save_all_maze_data(self.profile_name, self.maze, heatmap_data, self.total_reward)
+
         with open(simulation_rewards_path, 'a') as f:
             f.write(f"{self.total_reward}\n")
-            
+        
+        
+        print(f"Episode completed. Saving q-table for", self.profile_name)
         self.q_learning.save_q_table(self.profile_name)  # Save Q-table after each episode
-        #print(f"Total reward: {self.total_reward}")  # Debug statement
 
     def reset_bot(self):
         self.position = self.maze.start
@@ -215,6 +251,7 @@ class QLearningBot(BaseBot):
         self.total_reward = 0
         self.state = self.calculate_state()
         self.q_learning.reset()
+        print("Bot ", self.profile_name, " reset.")
         self.q_learning.save_q_table(self.profile_name)  # Save Q-table before resetting
     
     def save_heatmap_data(self):
