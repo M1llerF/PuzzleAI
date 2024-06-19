@@ -164,7 +164,7 @@ class CreateEditProfileFrame(tk.Frame):
             'detect_walls': tk.BooleanVar(value=True)
         }
         
-        
+
         for tool, var in self.tools.items():
             ttk.Checkbutton(self, text=tool, variable=var).pack()
 
@@ -510,29 +510,29 @@ class VisualizationFrame(tk.Frame):
         self.display_statistics(profile)
 
         # Add options to view different mazes
-        self.display_maze_options({
-            "Latest": (maze_data["latest"]["maze"], maze_data["latest"]["start"], maze_data["latest"]["end"], maze_data["latest"]["heatmap_data"], maze_data["latest"]["reward"]),
-            "Highest Reward": (maze_data["highest"]["maze"], maze_data["highest"]["start"], maze_data["highest"]["end"], maze_data["highest"]["heatmap_data"], maze_data["highest"]["reward"]),
-            "Lowest Reward": (maze_data["lowest"]["maze"], maze_data["lowest"]["start"], maze_data["lowest"]["end"], maze_data["lowest"]["heatmap_data"], maze_data["lowest"]["reward"]),
-        })
+        # self.display_maze_options({
+        #     "Latest": (maze_data["latest"]["maze"], maze_data["latest"]["start"], maze_data["latest"]["end"], maze_data["latest"]["heatmap_data"], maze_data["latest"]["reward"]),
+        #     "Highest Reward": (maze_data["highest"]["maze"], maze_data["highest"]["start"], maze_data["highest"]["end"], maze_data["highest"]["heatmap_data"], maze_data["highest"]["reward"]),
+        #     "Lowest Reward": (maze_data["lowest"]["maze"], maze_data["lowest"]["start"], maze_data["lowest"]["end"], maze_data["lowest"]["heatmap_data"], maze_data["lowest"]["reward"]),
+        # })
 
-    def display_maze_options(self, mazes):
-        frame = ttk.Frame(self)
-        frame.pack(pady=10)
-        for name, (maze, start, end, heatmap_data, reward) in mazes.items():
-            ttk.Button(frame, text=f"View {name} Maze (Reward: {reward})", command=lambda m=maze, s=start, e=end, h=heatmap_data: self.display_heatmap(m, s, e, h)).pack(side="left", padx=5)
+    # def display_maze_options(self, mazes):
+    #     frame = ttk.Frame(self)
+    #     frame.pack(pady=10)
+    #     for name, (maze, start, end, heatmap_data, reward) in mazes.items():
+    #         ttk.Button(frame, text=f"View {name} Maze (Reward: {reward})", command=lambda m=maze, s=start, e=end, h=heatmap_data: self.display_heatmap(m, s, e, h)).pack(side="left", padx=5)
 
-    def display_heatmap(self, maze, start, end, heatmap_data):
+    def display_heatmap(self, canvas, maze, start, end, heatmap_data):
         # Clear the canvas
-        self.heatmap_canvas.delete("all")
+        canvas.delete("all")
 
         if maze is None:
             return
 
         maze_width = len(maze[0])
         maze_height = len(maze)
-        cell_width = self.heatmap_canvas.winfo_width() / maze_width
-        cell_height = self.heatmap_canvas.winfo_height() / maze_height
+        cell_width = canvas.winfo_width() / maze_width
+        cell_height = canvas.winfo_height() / maze_height
 
         heatmap = np.zeros((maze_height, maze_width))
         for (x, y), count in heatmap_data.items():
@@ -544,22 +544,22 @@ class VisualizationFrame(tk.Frame):
         for y in range(maze_height):
             for x in range(maze_width):
                 if maze[y][x] == 1:
-                    self.heatmap_canvas.create_rectangle(x * cell_width, y * cell_height,
+                    canvas.create_rectangle(x * cell_width, y * cell_height,
                                                          (x + 1) * cell_width, (y + 1) * cell_height,
                                                          fill="black")
                 else:
                     heat_value = heatmap[y, x] / max_heat
                     if heat_value > 0:
                         color = mcolors.to_hex(cmap(heat_value))
-                        self.heatmap_canvas.create_rectangle(x * cell_width, y * cell_height,
+                        canvas.create_rectangle(x * cell_width, y * cell_height,
                                                              (x + 1) * cell_width, (y + 1) * cell_height,
                                                              fill=color, outline=color)
 
-        self.heatmap_canvas.create_rectangle(start[1] * cell_width, start[0] * cell_height,
+        canvas.create_rectangle(start[1] * cell_width, start[0] * cell_height,
                                              (start[1] + 1) * cell_width, (start[0] + 1) * cell_height,
                                              fill="blue")
 
-        self.heatmap_canvas.create_rectangle(end[1] * cell_width, end[0] * cell_height,
+        canvas.create_rectangle(end[1] * cell_width, end[0] * cell_height,
                                              (end[1] + 1) * cell_width, (end[0] + 1) * cell_height,
                                              fill="green")
 

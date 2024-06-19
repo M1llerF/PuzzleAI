@@ -112,25 +112,13 @@ class QLearning:
             print("Q-table loaded.")
         except FileNotFoundError:
             print("FileNotFoundError: Q-table file not found.")
-            self.q_table = {}
+            #self.q_table = {} #! Commented out for now incase I accidentally delete trainign data.
         except ValueError as ve:
             print("ValueError: ", ve)
-            self.q_table = {}
+            #self.q_table = {}
         except EOFError:
             print("Q-table file is incomplete or corrupted.")
-            self.q_table = {}
-
-    # def load_q_table(self, profile_name):
-    #     """Load the Q-table from a file."""
-    #     profile_dir = f"profiles/{profile_name}"
-    #     q_table_path = f"{profile_dir}/q_table.pkl"
-    #     try:
-    #         with open(q_table_path, 'rb') as f:
-    #             self.q_table = pickle.load(f)
-    #         print("Q-table loaded.")
-    #     except FileNotFoundError:
-    #         print("Q-table file not found.")
-    #         self.q_table = {}
+            #self.q_table = {}
     
     def reset(self):
         """Reset the Q-learning statistics"""
@@ -224,7 +212,7 @@ class QLearningBot(BaseBot):
                 break
 
             heatmap_data = self.statistics.get_visited_positions()
-            self.statistics.save_all_maze_data(self.profile_name, self.maze, heatmap_data, self.total_reward)
+            #self.statistics.save_all_maze_data(self.profile_name, self.maze, heatmap_data, self.total_reward)
             
             profile_dir = f"profiles/{self.profile_name}"
             os.makedirs(profile_dir, exist_ok=True)
