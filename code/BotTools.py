@@ -66,51 +66,111 @@ class BotTools:
         return None
     
     """Class provides general tools to bots."""
-    def check_goal_in_sight(self, position, wall_distances):
-        """Check if the goal is in sight based on wall distances"""
-        return any(self.maze.end in [(position[0] + dx * distance, position[1] + dy * distance)
-                    for (dx, dy), distance in zip([(-1, 0), (1, 0), (0, -1), (0, 1)], wall_distances.values())])
+    def check_goal_in_sight(self, position, max_distance):
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        for dx, dy in directions:
+            for distance in range(1, max_distance + 1):
+                new_position = (position[0] + dx * distance, position[1] + dy * distance)
+                if self.maze.is_valid_position(new_position[0], new_position[1]):
+                    if new_position == self.maze.end:
+                        return 1 # True
+                else:
+                    break
+        return 0 # False
     
     def pos_to_state(self, position):
         """Convert position to a state index for simplicity in smaller mazes"""
-        #print("(From BotTools.py, BotTools, post_to_state(...)): position = (", position[0], ", ", position[1], ")")
         return (position[0], position[1])
     
     def is_valid_position(self, position):
         """Check if the position is valid in the maze"""
         return self.maze.is_valid_position(position[0], position[1])
 
+
     def detect_walls(self, position):
-        """Detect the distance to walls in all directions"""
+        """Detect the distance to walls in all directions and check for the goal direction"""
         directions = {
             'Up': (-1, 0),
             'Down': (1, 0),
             'Left': (0, -1),
             'Right': (0, 1),
         }
-        
-        wall_distances = {}
-        goal_direction = None
+
+        wall_distances_list = []  # Initialize distances for all directions
+        goal_direction_list = []  # Initialize goal directions to 0 (False)
+
+        maze_height = self.maze.height
+        maze_width = self.maze.width
+        maze_end = self.maze.end
+        is_valid_position = self.maze.is_valid_position
+
         for direction, (dx, dy) in directions.items():
             distance = 0
+            goal = 0
             current_position = position
+
             # Check boundaries before moving in the direction
             while True:
                 next_position = (current_position[0] + dx, current_position[1] + dy)
+
                 # Make sure next_position is within the maze boundaries
-                if 0 <= next_position[0] < self.maze.height and 0 <= next_position[1] < self.maze.width:
-                    if next_position == self.maze.end:
-                            goal_direction = direction
-                            break # Goal is in sight, stop checking further
-                    if self.maze.is_valid_position(next_position[0], next_position[1]):
+                if 0 <= next_position[0] < maze_height and 0 <= next_position[1] < maze_width:
+                    if next_position == maze_end:
+                        goal = 1  # Goal is in sight in this direction
+                        break  # Goal is in sight, stop checking further
+                    if is_valid_position(next_position[0], next_position[1]):
                         current_position = next_position
                         distance += 1
                     else:
                         break  # Hit a wall or boundary, break the loop
                 else:
                     break  # Out of bounds, break the loop
-            wall_distances[direction] = distance
+
+            wall_distances_list.append(distance)
+            goal_direction_list.append(goal)
+
+        wall_distances = tuple(wall_distances_list)
+        goal_direction = tuple(goal_direction_list)
+
         return wall_distances, goal_direction
+
+    # def detect_walls(self, position):
+    #     """Detect the distance to walls in all directions and check for the goal direction"""
+    #     directions = {
+    #         'Up': (-1, 0),
+    #         'Down': (1, 0),
+    #         'Left': (0, -1),
+    #         'Right': (0, 1),
+    #     }
+
+    #     wall_distances = [0] * len(directions)  # Initialize distances for all directions
+    #     goal_direction = [0] * len(directions)  # Initialize goal directions to 0 (False)
+    #     direction_keys = list(directions.keys())
+
+    #     for idx, (direction, (dx, dy)) in enumerate(directions.items()):
+    #         distance = 0
+    #         current_position = position
+
+    #         # Check boundaries before moving in the direction
+    #         while True:
+    #             next_position = (current_position[0] + dx, current_position[1] + dy)
+
+    #             # Make sure next_position is within the maze boundaries
+    #             if 0 <= next_position[0] < self.maze.height and 0 <= next_position[1] < self.maze.width:
+    #                 if next_position == self.maze.end:
+    #                     goal_direction[idx] = 1  # Goal is in sight in this direction
+    #                     break  # Goal is in sight, stop checking further
+    #                 if self.maze.is_valid_position(next_position[0], next_position[1]):
+    #                     current_position = next_position
+    #                     distance += 1
+    #                 else:
+    #                     break  # Hit a wall or boundary, break the loop
+    #             else:
+    #                 break  # Out of bounds, break the loop
+
+    #         wall_distances[idx] = distance
+
+    #     return wall_distances, goal_direction
     
     def get_distance_to_goal(self, position):
         """Get the distance to the goal"""

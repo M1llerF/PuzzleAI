@@ -164,20 +164,19 @@ class CreateEditProfileFrame(tk.Frame):
             'detect_walls': tk.BooleanVar(value=True)
         }
         
-
         for tool, var in self.tools.items():
             ttk.Checkbutton(self, text=tool, variable=var).pack()
 
         ttk.Label(self, text="Reward Configuration:").pack()
         self.rewards = {
-            'goal_reached': tk.StringVar(value="1000 * (optimal_length // 10)"),
-            'hit_wall': tk.StringVar(value="-100 * (optimal_length // 10)"),
-            'revisit_optimal_path': tk.StringVar(value="-10 * (optimal_length // 10)"),
-            'revisit_non_optimal_path': tk.StringVar(value="-15 * (optimal_length // 10)"),
-            'move_in_optimal_path': tk.StringVar(value="5 * (optimal_length // 10)"),
+            'goal_reached': tk.StringVar(value="1000"),
+            'hit_wall': tk.StringVar(value="-100"),
+            'revisit_optimal_path': tk.StringVar(value="-10"),
+            'revisit_non_optimal_path': tk.StringVar(value="-15"),
+            'move_in_optimal_path': tk.StringVar(value="5"),
             'see_goal_new_location': tk.StringVar(value="50"),
             'see_goal_revisit': tk.StringVar(value="5"),
-            'per_move_penalty': tk.StringVar(value="-1 * (optimal_length // 100)")
+            'per_move_penalty': tk.StringVar(value="-1")
         }
 
         for reward, var in self.rewards.items():
@@ -294,8 +293,7 @@ class BotTrainingFrame(tk.Frame):
 
 
         profile = self.controller.game_env.profile_manager.load_profile(selected_profile)
-        profile_index = self.controller.game_env.apply_profile(profile) # Issue is that when we append a profile, if the profile was at index #, it will be put as index 1
-        #profile_index = len(self.controller.game_env.bots) - 1
+        profile_index = self.controller.game_env.apply_profile(profile)
 
         rounds = self.rounds_entry.get()
         if not rounds.isdigit():
@@ -444,6 +442,7 @@ class VisualizationWindow(tk.Toplevel):
             self.after_cancel(self.after_id)
         self.destroy()
 
+
 class VisualizationFrame(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -480,6 +479,11 @@ class VisualizationFrame(tk.Frame):
         self.qtable_output = tk.Text(self, height=10, width=50)
         self.qtable_output.pack(pady=10)
 
+        # Scrollbar
+        self.scrollbar = ttk.Scrollbar(self, command=self.on_scroll)
+        self.scrollbar.pack(side="right", fill="y")
+        self.qtable_output.config(yscrollcommand=self.scrollbar.set)
+
         # Statistics Display
         ttk.Label(self, text="Statistics:").pack(pady=10)
         self.statistics_output = tk.Text(self, height=5, width=50)
@@ -490,6 +494,7 @@ class VisualizationFrame(tk.Frame):
     def load_profiles(self):
         profiles = self.controller.game_env.profile_manager.list_profiles()
         self.profile_select['values'] = profiles
+
 
     def load_profile(self):
         selected_profile = self.profile_select.get()
@@ -506,21 +511,8 @@ class VisualizationFrame(tk.Frame):
         self.display_heatmap(self.heatmap_canvas_latest, maze_data["latest"]["maze"], maze_data["latest"]["start"], maze_data["latest"]["end"], maze_data["latest"]["heatmap_data"])
         self.display_heatmap(self.heatmap_canvas_highest, maze_data["highest"]["maze"], maze_data["highest"]["start"], maze_data["highest"]["end"], maze_data["highest"]["heatmap_data"])
         self.display_heatmap(self.heatmap_canvas_lowest, maze_data["lowest"]["maze"], maze_data["lowest"]["start"], maze_data["lowest"]["end"], maze_data["lowest"]["heatmap_data"])       
-        self.display_qtable(profile)
-        self.display_statistics(profile)
-
-        # Add options to view different mazes
-        # self.display_maze_options({
-        #     "Latest": (maze_data["latest"]["maze"], maze_data["latest"]["start"], maze_data["latest"]["end"], maze_data["latest"]["heatmap_data"], maze_data["latest"]["reward"]),
-        #     "Highest Reward": (maze_data["highest"]["maze"], maze_data["highest"]["start"], maze_data["highest"]["end"], maze_data["highest"]["heatmap_data"], maze_data["highest"]["reward"]),
-        #     "Lowest Reward": (maze_data["lowest"]["maze"], maze_data["lowest"]["start"], maze_data["lowest"]["end"], maze_data["lowest"]["heatmap_data"], maze_data["lowest"]["reward"]),
-        # })
-
-    # def display_maze_options(self, mazes):
-    #     frame = ttk.Frame(self)
-    #     frame.pack(pady=10)
-    #     for name, (maze, start, end, heatmap_data, reward) in mazes.items():
-    #         ttk.Button(frame, text=f"View {name} Maze (Reward: {reward})", command=lambda m=maze, s=start, e=end, h=heatmap_data: self.display_heatmap(m, s, e, h)).pack(side="left", padx=5)
+        self.display_qtable(profile_index)
+        self.display_statistics(profile_index)
 
     def display_heatmap(self, canvas, maze, start, end, heatmap_data):
         # Clear the canvas
@@ -563,23 +555,98 @@ class VisualizationFrame(tk.Frame):
                                              (end[1] + 1) * cell_width, (end[0] + 1) * cell_height,
                                              fill="green")
 
-    def display_qtable(self, profile):
-        bot = self.controller.game_env.bots[self.profile_select.current()]
-        q_table = bot.q_learning.q_table
+    def get_top_q_values(self, profile_index, n=10):
+        """Get the top N Q-table values."""
+        print(self.profile_select.current())
+        bot = self.controller.game_env.bots[profile_index]
+        q_table_items = bot.q_learning.q_table.items()
+        top_items = []
+
+        for item in q_table_items:
+            q_value = np.max(item[1])
+            if len(top_items) < n:
+                top_items.append((q_value, item))
+                top_items.sort(reverse=True, key=lambda x: x[0])
+            else:
+                if q_value > top_items[-1][0]:
+                    top_items[-1] = (q_value, item)
+                    top_items.sort(reverse=True, key=lambda x: x[0])
+
+        return top_items
+
+
+    def get_bottom_q_values(self, profile_index, n=10):
+        """Get the bottom N Q-table values."""
+
+        bot = self.controller.game_env.bots[profile_index]
+        q_table_items = bot.q_learning.q_table.items()
+        bottom_items = []
+
+        for item in q_table_items:
+            q_value = np.max(item[1])
+            if len(bottom_items) < n:
+                bottom_items.append((q_value, item))
+                bottom_items.sort(key=lambda x: x[0])
+            else:
+                if q_value < bottom_items[-1][0]:
+                    bottom_items[-1] = (q_value, item)
+                    bottom_items.sort(key=lambda x: x[0])
+
+        return bottom_items
+
+    def get_action_label(self, action_index):
+        action_labels = ["Up", "Down", "Left", "Right"]
+        return action_labels[action_index]
+    
+    def display_qtable(self, profile_index):
+        top_values = self.get_top_q_values(profile_index)
+        #bottom_values = self.get_bottom_q_values()
 
         self.qtable_output.delete("1.0", tk.END)
-        for state, actions in q_table.items():
-            self.qtable_output.insert(tk.END, f"State: {state}, Actions: {actions}\n")
+        self.qtable_output.insert(tk.END, "Top Q-Table Values:\n")
+        for i, (q_value, (state, actions)) in enumerate(top_values):
+            position, surrounding, step_count, distance_to_goal, _ = state
+            best_action_index = np.argmax(actions)
+            best_action = self.get_action_label(best_action_index)
+            best_q_value = q_value
+            self.qtable_output.insert(tk.END, f"Rank {i+1}:\n")
+            self.qtable_output.insert(tk.END, f"  Current Position: {position}\n")
+            self.qtable_output.insert(tk.END, f"  Surrounding: {surrounding}\n")
+            self.qtable_output.insert(tk.END, f"  Step Count: {step_count}\n")
+            self.qtable_output.insert(tk.END, f"  Distance to Goal: {distance_to_goal}\n")
+            self.qtable_output.insert(tk.END, f"  Best Action: {best_action}\n")
+            self.qtable_output.insert(tk.END, f"  Best Q-value: {best_q_value}\n\n")
+        
+        # self.qtable_output.insert(tk.END, "\nBottom Q-Table Values:\n")
+        # for i, (q_value, (state, actions)) in enumerate(bottom_values):
+        #     position, surrounding, step_count, distance_to_goal, _ = state
+        #     best_action_index = np.argmax(actions)
+        #     best_action = self.get_action_label(best_action_index)
+        #     best_q_value = q_value
+        #     self.qtable_output.insert(tk.END, f"Rank {i+1}:\n")
+        #     self.qtable_output.insert(tk.END, f"  Current Position: {position}\n")
+        #     self.qtable_output.insert(tk.END, f"  Surrounding: {surrounding}\n")
+        #     self.qtable_output.insert(tk.END, f"  Step Count: {step_count}\n")
+        #     self.qtable_output.insert(tk.END, f"  Distance to Goal: {distance_to_goal}\n")
+        #     self.qtable_output.insert(tk.END, f"  Best Action: {best_action}\n")
+        #     self.qtable_output.insert(tk.END, f"  Best Q-value: {best_q_value}\n\n")
 
-    def display_statistics(self, profile):
-        bot = self.controller.game_env.bots[self.profile_select.current()]
+    def display_statistics(self, profile_index):
+        bot = self.controller.game_env.bots[profile_index]
         statistics = bot.statistics
 
         self.statistics_output.delete("1.0", tk.END)
         self.statistics_output.insert(tk.END, f"Total Steps: {statistics.total_steps}\n")
         self.statistics_output.insert(tk.END, f"Non-Repeating Steps: {statistics.non_repeating_steps_taken}\n")
         self.statistics_output.insert(tk.END, f"Times Revisited Squares: {statistics.times_revisited_squares}\n")
-
+    
+    def on_scroll(self, *args):
+        self.qtable_output.yview(*args)
+        if args[0] == "moveto" and float(args[1]) == 0.0:
+            self.load_more_qtable_values()
+    
+    def load_more_qtable_values(self):
+        pass
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -50,6 +50,7 @@ class QLearning:
     def choose_action(self, state):
         """ Choose an action based on the exploration-exploitation trade-off."""
         state_key = self.state_to_key(state)
+        #print(state_key, "\n")
 
         if state_key not in self.q_table:
             self.q_table[state_key] = np.zeros(self.num_actions) 
@@ -158,12 +159,13 @@ class QLearningBot(BaseBot):
         """Calculate the state based on the position"""
         position_index = self.tools.pos_to_state(self.position)
         wall_distances, goal_direction = self.tools.detect_walls(self.position)
-        visited = self.q_learning.visited_positions.get(self.position, 0)
+        visited = self.statistics.get_visited_positions()
+        #print(self.statistics.get_visited_positions())
+        #print(visited) #! Visited in not being updated correctly.
         distance_to_goal = self.tools.get_distance_to_goal(self.position)
-        return (position_index, tuple(wall_distances.values()), visited, distance_to_goal, goal_direction)
+        return (position_index, wall_distances, tuple(visited), distance_to_goal, goal_direction)
     
     def run_episode(self):
-        print("Running episode for ", self.profile_name)
         step_limit = 1000 * self.tools.get_optimal_path_info(self.maze.start, self.maze.end, output='length')
         steps = 0
 
@@ -230,7 +232,7 @@ class QLearningBot(BaseBot):
             f.write(f"{self.total_reward}\n")
         
         
-        print(f"Episode completed. Saving q-table for", self.profile_name)
+        #print(f"Episode completed. Saving q-table for", self.profile_name)
         self.q_learning.save_q_table(self.profile_name)  # Save Q-table after each episode
 
     def reset_bot(self):
@@ -239,7 +241,7 @@ class QLearningBot(BaseBot):
         self.total_reward = 0
         self.state = self.calculate_state()
         self.q_learning.reset()
-        print("Bot ", self.profile_name, " reset.")
+        #print("Bot ", self.profile_name, " reset.")
         self.q_learning.save_q_table(self.profile_name)  # Save Q-table before resetting
     
     def save_heatmap_data(self):
