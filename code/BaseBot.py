@@ -1,18 +1,24 @@
-from RewardSystem import RewardSystem, RewardConfig
-from BotTools import BotTools
-# TODO Determine whether we want to add statistics to this? If not, how will we get statistics??
 class BaseBot:
-    def __init__(self, maze, q_learning_config, reward_system, tool_config): #! TODO Should add statistics to this
+    def __init__(self, maze, statistics, config=None):
+        """
+        Initialize the base bot.
+
+        :param maze: The maze object that the bot will navigate.
+        :param statistics: An instance of BotStatistics to track the bot's performance.
+        :param config: Optional configuration for specific algorithms (e.g., Q-learning config).
+        """
         self.maze = maze
-        self.q_learning_config = q_learning_config
-        self.reward_system = reward_system
-        self.tool_config = tool_config
+        self.statistics = statistics
+        self.config = config
     
     def reset(self):
+        """Reset the bot's state and statistics. Should be implemented by subclasses."""
         raise NotImplementedError("This method should be implemented by subclasses.")
 
     def calculate_state(self):
+        """Calculate the current state of the bot. Should be implemented by subclasses."""
         raise NotImplementedError("This method should be implemented by subclasses.")
 
     def run_episode(self):
+        """Run a single episode of the bot's operation. Should be implemented by subclasses."""
         raise NotImplementedError("This method should be implemented by subclasses.")

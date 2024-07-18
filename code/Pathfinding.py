@@ -12,7 +12,7 @@ class Pathfinding:
             directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
             for dx, dy in directions:
                 x2, y2 = pos[0] + dx, pos[1] + dy
-                if 0 <= x2 < maze.height and 0 <= y2 < maze.width and maze.is_valid_position(x2, y2):
+                if 0 <= x2 < maze.height and 0 <= y2 < maze.width and maze.is_valid_position(None, x2, y2):
                     neighbors.append((x2, y2))
             return neighbors
 

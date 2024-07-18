@@ -1,5 +1,6 @@
 import json
 import os
+import pickle
 import shutil
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -12,9 +13,8 @@ import numpy as np
 from GameEnvironment import GameEnvironment
 from QLearningBot import QLearningConfig
 from RewardSystem import RewardConfig
-from BotTools import BotToolsConfig
-from Maze import Maze
 from BotStatistics import BotStatistics
+from RewardGrapher import RewardGrapher
 
 class MazeAIApp:
     def __init__(self, root):
@@ -157,16 +157,6 @@ class CreateEditProfileFrame(tk.Frame):
         self.discount_factor_entry = ttk.Entry(self)
         self.discount_factor_entry.pack()
 
-        ttk.Label(self, text="Tools Configuration:").pack()
-        self.tools = {
-            'optimal_path': tk.BooleanVar(value=True),
-            'optimal_length': tk.BooleanVar(value=True),
-            'detect_walls': tk.BooleanVar(value=True)
-        }
-        
-        for tool, var in self.tools.items():
-            ttk.Checkbutton(self, text=tool, variable=var).pack()
-
         ttk.Label(self, text="Reward Configuration:").pack()
         self.rewards = {
             'goal_reached': tk.StringVar(value="1000"),
@@ -199,21 +189,15 @@ class CreateEditProfileFrame(tk.Frame):
                 self.discount_factor_entry.delete(0, tk.END)
                 self.discount_factor_entry.insert(0, profile.config.discount_factor)
 
-            if profile.tools_config:
-                for tool, var in self.tools.items():
-                    var.set(profile.tools_config.tools.get(tool, False))
-
             if profile.reward_config:
                 for reward, var in self.rewards.items():
                     var.set(profile.reward_config.reward_modifiers.get(reward, ""))
-
 
     def save_profile(self):
         profile_name = self.profile_name_entry.get()
         bot_type = self.bot_type_entry.get()
         learning_rate = self.learning_rate_entry.get()
         discount_factor = self.discount_factor_entry.get()
-        tools_config = {tool: var.get() for tool, var in self.tools.items()}
         rewards_config = {reward: var.get() for reward, var in self.rewards.items()}
 
 
@@ -222,14 +206,11 @@ class CreateEditProfileFrame(tk.Frame):
         else:
             messagebox.showerror("Error", f"Unknown bot type: {bot_type}")
             return
-
-        tools_config_obj = BotToolsConfig()
-        tools_config_obj.tools.update(tools_config)
         
         reward_config_obj = RewardConfig()
         reward_config_obj.reward_modifiers.update(rewards_config)
         
-        self.controller.game_env.setup_new_profile(profile_name, bot_type, config, reward_config_obj, tools_config_obj)
+        self.controller.game_env.setup_new_profile(profile_name, bot_type, config, reward_config_obj)
         # Initialize the mazes.json file
         profile_dir = f"profiles/{profile_name}"
         os.makedirs(profile_dir, exist_ok=True)
@@ -449,47 +430,69 @@ class VisualizationFrame(tk.Frame):
         self.controller = controller
         ttk.Label(self, text="Visualizations", font=("TkDefaultFont", 20)).pack(pady=10, padx=10)
 
-        # Profile Selection
-        ttk.Label(self, text="Select Profile:").pack()
-        self.profile_select = ttk.Combobox(self)
+        # Create a canvas and a scrollbar
+        self.canvas = tk.Canvas(self, height=600, width=1000)  # Set a minimum height for the canvas
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        # Create a frame inside the canvas
+        self.scrollable_frame = tk.Frame(self.canvas)
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        # Configure the canvas to scroll with the scrollbar
+        self.scrollable_frame.bind("<Configure>", self.on_frame_configure)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        ttk.Label(self.scrollable_frame, text="Select Profile:").pack()
+        self.profile_select = ttk.Combobox(self.scrollable_frame)
         self.profile_select.pack()
 
-        ttk.Button(self, text="Load Profile", command=self.load_profile).pack(pady=10)
+        ttk.Button(self.scrollable_frame, text="Load Profile", command=self.load_profile).pack(pady=10)
+
         # Create a frame to hold the canvases
-        canvas_frame = tk.Frame(self)
-        canvas_frame.pack(pady=10)
+        self.heatmap_frame = tk.Frame(self.scrollable_frame)
+        self.heatmap_frame.pack(pady=10)
 
         # Heatmap Visualization for Latest Maze
-        ttk.Label(canvas_frame, text="Latest Maze").grid(row=0, column=0, pady=10)
-        self.heatmap_canvas_latest = tk.Canvas(canvas_frame, width=300, height=300, bg="white")
+        ttk.Label(self.heatmap_frame, text="Latest Maze").grid(row=0, column=0, pady=10)
+        self.heatmap_canvas_latest = tk.Canvas(self.heatmap_frame, width=300, height=300, bg="white")
         self.heatmap_canvas_latest.grid(row=1, column=0, padx=5)
 
         # Heatmap Visualization for Highest Reward Maze
-        ttk.Label(canvas_frame, text="Highest Reward Maze").grid(row=0, column=1, pady=10)
-        self.heatmap_canvas_highest = tk.Canvas(canvas_frame, width=300, height=300, bg="white")
+        ttk.Label(self.heatmap_frame, text="Highest Reward Maze").grid(row=0, column=1, pady=10)
+        self.heatmap_canvas_highest = tk.Canvas(self.heatmap_frame, width=300, height=300, bg="white")
         self.heatmap_canvas_highest.grid(row=1, column=1, padx=5)
 
         # Heatmap Visualization for Lowest Reward Maze
-        ttk.Label(canvas_frame, text="Lowest Reward Maze").grid(row=0, column=2, pady=10)
-        self.heatmap_canvas_lowest = tk.Canvas(canvas_frame, width=300, height=300, bg="white")
+        ttk.Label(self.heatmap_frame, text="Lowest Reward Maze").grid(row=0, column=2, pady=10)
+        self.heatmap_canvas_lowest = tk.Canvas(self.heatmap_frame, width=300, height=300, bg="white")
         self.heatmap_canvas_lowest.grid(row=1, column=2, padx=5)
 
+        # Reward Graph Visualization
+        ttk.Label(self.scrollable_frame, text="Reward Graph Visualization:").pack(pady=10)
+        self.reward_canvas = tk.Canvas(self.scrollable_frame, width=800, height=400)
+        self.reward_canvas.pack(pady=10)
+
         # Q-Table Visualization
-        ttk.Label(self, text="Q-Table Visualization:").pack(pady=10)
-        self.qtable_output = tk.Text(self, height=10, width=50)
+        ttk.Label(self.scrollable_frame, text="Q-Table Visualization:").pack(pady=10)
+        self.qtable_output = tk.Text(self.scrollable_frame, height=10, width=50)
         self.qtable_output.pack(pady=10)
 
-        # Scrollbar
-        self.scrollbar = ttk.Scrollbar(self, command=self.on_scroll)
-        self.scrollbar.pack(side="right", fill="y")
-        self.qtable_output.config(yscrollcommand=self.scrollbar.set)
+        # Scrollbar for Q-Table
+        self.qtable_scrollbar = ttk.Scrollbar(self.scrollable_frame, command=self.qtable_output.yview)
+        self.qtable_scrollbar.pack(side="right", fill="y")
+        self.qtable_output.config(yscrollcommand=self.qtable_scrollbar.set)
 
         # Statistics Display
-        ttk.Label(self, text="Statistics:").pack(pady=10)
-        self.statistics_output = tk.Text(self, height=5, width=50)
+        ttk.Label(self.scrollable_frame, text="Statistics:").pack(pady=10)
+        self.statistics_output = tk.Text(self.scrollable_frame, height=5, width=50)
         self.statistics_output.pack(pady=10)
 
         self.load_profiles()
+
+    def on_frame_configure(self, event):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def load_profiles(self):
         profiles = self.controller.game_env.profile_manager.list_profiles()
@@ -506,13 +509,20 @@ class VisualizationFrame(tk.Frame):
         profile_index = self.controller.game_env.apply_profile(profile)
 
         maze_data_path = f"profiles/{selected_profile}/mazes.json"
-        maze_data = BotStatistics.read_maze_and_heatmap(maze_data_path)
+        bot_statistics = BotStatistics()
+        maze_data = bot_statistics.load_all_maze_data(maze_data_path)
 
         self.display_heatmap(self.heatmap_canvas_latest, maze_data["latest"]["maze"], maze_data["latest"]["start"], maze_data["latest"]["end"], maze_data["latest"]["heatmap_data"])
         self.display_heatmap(self.heatmap_canvas_highest, maze_data["highest"]["maze"], maze_data["highest"]["start"], maze_data["highest"]["end"], maze_data["highest"]["heatmap_data"])
         self.display_heatmap(self.heatmap_canvas_lowest, maze_data["lowest"]["maze"], maze_data["lowest"]["start"], maze_data["lowest"]["end"], maze_data["lowest"]["heatmap_data"])       
         self.display_qtable(profile_index)
         self.display_statistics(profile_index)
+
+        reward_filenames = [
+            f'profiles/{selected_profile}/SimulationRewards.txt'
+        ]
+        grapher = RewardGrapher(reward_filenames)
+        grapher.run(self.reward_canvas)
 
     def display_heatmap(self, canvas, maze, start, end, heatmap_data):
         # Clear the canvas
@@ -616,30 +626,21 @@ class VisualizationFrame(tk.Frame):
             self.qtable_output.insert(tk.END, f"  Distance to Goal: {distance_to_goal}\n")
             self.qtable_output.insert(tk.END, f"  Best Action: {best_action}\n")
             self.qtable_output.insert(tk.END, f"  Best Q-value: {best_q_value}\n\n")
-        
-        # self.qtable_output.insert(tk.END, "\nBottom Q-Table Values:\n")
-        # for i, (q_value, (state, actions)) in enumerate(bottom_values):
-        #     position, surrounding, step_count, distance_to_goal, _ = state
-        #     best_action_index = np.argmax(actions)
-        #     best_action = self.get_action_label(best_action_index)
-        #     best_q_value = q_value
-        #     self.qtable_output.insert(tk.END, f"Rank {i+1}:\n")
-        #     self.qtable_output.insert(tk.END, f"  Current Position: {position}\n")
-        #     self.qtable_output.insert(tk.END, f"  Surrounding: {surrounding}\n")
-        #     self.qtable_output.insert(tk.END, f"  Step Count: {step_count}\n")
-        #     self.qtable_output.insert(tk.END, f"  Distance to Goal: {distance_to_goal}\n")
-        #     self.qtable_output.insert(tk.END, f"  Best Action: {best_action}\n")
-        #     self.qtable_output.insert(tk.END, f"  Best Q-value: {best_q_value}\n\n")
 
     def display_statistics(self, profile_index):
         bot = self.controller.game_env.bots[profile_index]
         statistics = bot.statistics
 
         self.statistics_output.delete("1.0", tk.END)
-        self.statistics_output.insert(tk.END, f"Total Steps: {statistics.total_steps}\n")
-        self.statistics_output.insert(tk.END, f"Non-Repeating Steps: {statistics.non_repeating_steps_taken}\n")
-        self.statistics_output.insert(tk.END, f"Times Revisited Squares: {statistics.times_revisited_squares}\n")
-    
+        profile_pkl_path = f"profiles/{self.profile_select.get()}/profile.pkl"
+        with open(profile_pkl_path, 'rb') as file:
+            profile_data = pickle.load(file)
+
+        self.statistics_output.insert(tk.END, f"Total Steps: {profile_data.get('total_steps', 0)}\n")
+        self.statistics_output.insert(tk.END, f"Non-Repeating Steps: {profile_data.get('non_repeating_steps_taken', 0)}\n")
+        self.statistics_output.insert(tk.END, f"Times Revisited Squares: {profile_data.get('times_revisited_squares', 0)}\n")
+        self.statistics_output.insert(tk.END, f"Times Bot Hit Wall: {profile_data.get('times_hit_wall', 0)}\n")
+
     def on_scroll(self, *args):
         self.qtable_output.yview(*args)
         if args[0] == "moveto" and float(args[1]) == 0.0:
