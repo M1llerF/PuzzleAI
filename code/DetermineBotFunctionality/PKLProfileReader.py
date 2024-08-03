@@ -1,3 +1,6 @@
+# Load a pickle file and display its contents in a readable format.
+# Used for debugging and testing purposes.
+
 import pickle
 
 class PKLReader:

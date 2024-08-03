@@ -1,3 +1,7 @@
+# Use this class to get a more detailed look at the Q-table and its contents.
+# Not used in the main program because it's not necessary for user to see all this information.
+# This class is used for debugging and testing purposes.
+
 import pickle
 import numpy as np
 
@@ -56,7 +60,7 @@ class QTableChecker:
             best_q_value = np.max(self.q_table[state])
             print(f"Rank {i+1}: State {state}, Best Action: {best_action}, Best Q-value: {best_q_value}")
 
-# Example usage:
+# Usage:
 q_checker = QTableChecker('code/NonCodeFiles/q_table.pkl')
 q_checker.print_q_table_summary()
 # q_checker.print_state_q_values(state)

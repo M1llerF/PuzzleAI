@@ -81,7 +81,6 @@ class RewardSystem:
         bot_tools = BotTools(self.maze)
         optimal_length = bot_tools.get_optimal_path_info(self.maze.start, self.maze.end, 'length')
         for key, expr in self.reward_config.reward_modifiers.items():
-            print("Expression: ", expr)
             multiplied_expr = str(int(expr) * optimal_length/100)
 
             if key == 'goal_reached' and new_position == self.maze.end:

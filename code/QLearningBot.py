@@ -94,14 +94,11 @@ class QLearning:
                 current_checksum = self.get_file_checksum(q_table_path)
                 if saved_checksum != current_checksum:
                     raise ValueError("File checksum does not match.")
-                print("Checksum matches.")
             else:
                 print("Checksum does not match or was not found at file not found at:", checksum_path)
 
             with open(q_table_path, 'rb') as f:
-                print("Loading Q-table from file.")
                 self.q_table = pickle.load(f)
-            print("Q-table loaded.")
         except FileNotFoundError:
             print("FileNotFoundError: Q-table file not found.")
         except ValueError as ve:
