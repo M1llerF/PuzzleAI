@@ -15,8 +15,13 @@ class RewardGrapher:
     
     def calculate_slope(self, rewards):
         episodes = np.arange(len(rewards))
-        slope, intercept = np.polyfit(episodes, rewards, 1)
-        return slope, intercept
+        if len(episodes) < 2: # Not enough data to calculate slope
+            return np.nan, np.nan
+        try:
+            slope, intercept = np.polyfit(episodes, rewards, 1)
+            return slope, intercept
+        except np.linalg.LinAlgError:
+            return np.nan, np.nan
 
     def plot_rewards(self, rewards, slope, intercept, label, ax):
         episodes = np.arange(len(rewards))
