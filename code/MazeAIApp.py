@@ -40,14 +40,15 @@ class MazeAIApp:
 
     def create_main_frames(self):
         self.frames = {}
-        
-        for F in (OverviewFrame, ProfileManagementFrame, CreateEditProfileFrame, BotTrainingFrame, VisualizationFrame):
+
+        for F in (ProfileManagementFrame, CreateEditProfileFrame, BotTrainingFrame, VisualizationFrame):
             page_name = F.__name__
             frame = F(parent=self.root, controller=self)
             self.frames[page_name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame("OverviewFrame")
+        # Set the default frame, replacing OverviewFrame
+        self.show_frame("ProfileManagementFrame")
 
     def show_frame(self, page_name):
         frame = self.frames[page_name]
@@ -71,15 +72,6 @@ class MazeAIApp:
 
     def show_visualizations(self):
         self.show_frame("VisualizationFrame")
-
-class OverviewFrame(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        self.controller = controller
-        ttk.Label(self, text="Overview", font=("TkDefaultFont", 20)).pack(pady=10, padx=10)
-        ttk.Label(self, text="Recently Used Profiles").pack()
-        ttk.Label(self, text="Quick Access to Bots").pack()
-
 
 class ProfileManagementFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -536,7 +528,6 @@ class VisualizationFrame(tk.Frame):
         self.statistics_output.insert(tk.END, f"Times Bot Hit Wall: {profile_data.get('times_hit_wall', 0)}\n")
 
     def display_reward_graph(self, bot):
-        print("Displaying reward graph")
         if self.canvas_agg:
             self.canvas_agg.get_tk_widget().destroy()
         reward_filenames = [f'profiles/{bot.profile_name}/SimulationRewards.txt']
