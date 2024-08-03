@@ -56,4 +56,4 @@ class RewardGrapher:
         plt.close(fig)
 
         # Return the slope for further use if needed
-        return slope
+        return canvas_agg
