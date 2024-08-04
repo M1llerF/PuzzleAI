@@ -68,7 +68,3 @@ The `Visualization` frame provides various visual representations of the bot's l
 ## Notes
 
 This project is the my first introduction to AI and serves as a learning experience in reinforcement learning and AI-driven applications.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
