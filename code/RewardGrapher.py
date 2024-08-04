@@ -24,7 +24,7 @@ class RewardGrapher:
             return np.nan, np.nan
 
     def plot_rewards(self, rewards, slope, intercept, label, ax):
-        episodes = np.arange(len(rewards))
+        episodes = np.arange(1, len(rewards) + 1) # Start from 1 instead of 0 for more accurate visualization
         ax.plot(rewards, label=f'{label} Rewards per Episode')
         ax.plot(episodes, slope * episodes + intercept, label=f'{label} Fit Line (slope={slope:.2f})', linestyle='--')
 

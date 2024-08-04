@@ -32,14 +32,16 @@ class BotProfile:
 
         :return: A dictionary representation of the profile.
         """
+        config_data = self.config.__dict__ if hasattr(self.config, '__dict__') else self.config
+        reward_config_data = self.reward_config.__dict__ if hasattr(self.reward_config, '__dict__') else self.reward_config
+        statistics_data = self.statistics.__dict__ if hasattr(self.statistics, '__dict__') else self.statistics
         return {
             "name": self.name,
             "bot_type": self.bot_type,
-            "config": self.config.__dict__,
-            "reward_config": self.reward_config.__dict__,
-            "statistics": self.statistics.__dict__,
+            "config": config_data,
+            "reward_config": reward_config_data,
+            "statistics": statistics_data,
             "bot_specific_data": self.bot_specific_data
-
         }
     
     @staticmethod

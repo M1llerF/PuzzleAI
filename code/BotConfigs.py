@@ -1,6 +1,6 @@
-from BaseConfig import BaseConfig
+# bot_configs.py
 
-class QLearningConfig(BaseConfig):
+class QLearningConfig:
     def __init__(self, learning_rate=0.1, discount_factor=0.9):
         """
         Initialize Q-learning configuration with default learning rate and discount factor.
@@ -32,3 +32,25 @@ class QLearningConfig(BaseConfig):
         except ValueError:
             print(f"Invalid input. Using default value {default}.")
             return default
+
+# Define configurations for different bot types
+bot_configs = {
+    "QLearningBot": {
+        "class": QLearningConfig,
+        "params": {
+            "Learning Rate": "learning_rate",
+            "Discount Factor": "discount_factor"
+        },
+        "rewards": {
+            'goal_reached': 1000,
+            'hit_wall': -100,
+            'revisit_optimal_path': -10,
+            'revisit_non_optimal_path': -15,
+            'move_in_optimal_path': 5,
+            'see_goal_new_location': 50,
+            'see_goal_revisit': 5,
+            'per_move_penalty': -1
+        }
+    },
+    # Additional bot types can be added here in the future
+}

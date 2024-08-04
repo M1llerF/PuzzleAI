@@ -2,11 +2,11 @@ import json
 import os
 import pickle
 from DisplayTools import DisplayTools
-import shutil
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 import matplotlib.colors as mcolors
+from BotConfigs import bot_configs
 
 
 from matplotlib import pyplot as plt
@@ -18,6 +18,7 @@ from RewardSystem import RewardConfig
 from BotStatistics import BotStatistics
 from RewardGrapher import RewardGrapher
 from VisualizationStrategy import QLearningBotVisualizationStrategy
+from BotProfile import BotProfile
 
 class MazeAIApp:
     def __init__(self, root):
@@ -56,11 +57,8 @@ class MazeAIApp:
         if page_name == "BotTrainingFrame":
             frame.clear_profile_selection()
 
-    
-
     def show_profile_management(self):
         self.show_frame("ProfileManagementFrame")
-
 
     def show_create_edit_profile(self, profile=None):
         frame = self.frames["CreateEditProfileFrame"]
@@ -100,9 +98,12 @@ class ProfileManagementFrame(tk.Frame):
             self.load_profile(profile_name)
 
     def load_profile(self, profile_name):
+        # Load the profile from the profile manager
         profile = self.controller.game_env.profile_manager.load_profile(profile_name)
-        self.controller.game_env.apply_profile(profile)
+
+        # Navigate to the CreateEditProfileFrame and load the profile details there
         self.controller.show_create_edit_profile(profile)
+
 
     def delete_profile(self):
         DisplayTools.delete_profile(self.controller.game_env.profile_manager, self.profile_list)
@@ -114,6 +115,10 @@ class CreateEditProfileFrame(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        self.current_config_widgets = []
+        self.param_vars = {}  # Store references to parameter StringVars
+        self.reward_vars = {}  # Store references to reward StringVars
+
         ttk.Label(self, text="Create/Edit Profile", font=("TkDefaultFont", 20)).pack(pady=10, padx=10)
 
         ttk.Label(self, text="Profile Name:").pack()
@@ -121,71 +126,112 @@ class CreateEditProfileFrame(tk.Frame):
         self.profile_name_entry.pack()
 
         ttk.Label(self, text="Bot Type:").pack()
-        self.bot_type_entry = ttk.Combobox(self, values=["QLearningBot"])
+        self.bot_type_entry = ttk.Combobox(self, values=list(bot_configs.keys()))
         self.bot_type_entry.pack()
+        self.bot_type_entry.bind("<<ComboboxSelected>>", self.update_bot_config_ui)
 
-        ttk.Label(self, text="Learning Rate:").pack()
-        self.learning_rate_entry = ttk.Entry(self)
-        self.learning_rate_entry.pack()
-        
-        ttk.Label(self, text="Discount Factor:").pack()
-        self.discount_factor_entry = ttk.Entry(self)
-        self.discount_factor_entry.pack()
-
-        ttk.Label(self, text="Reward Configuration:").pack()
-        self.rewards = {
-            'goal_reached': tk.StringVar(value="1000"),
-            'hit_wall': tk.StringVar(value="-100"),
-            'revisit_optimal_path': tk.StringVar(value="-10"),
-            'revisit_non_optimal_path': tk.StringVar(value="-15"),
-            'move_in_optimal_path': tk.StringVar(value="5"),
-            'see_goal_new_location': tk.StringVar(value="50"),
-            'see_goal_revisit': tk.StringVar(value="5"),
-            'per_move_penalty': tk.StringVar(value="-1")
-        }
-
-        for reward, var in self.rewards.items():
-            ttk.Label(self, text=reward).pack()
-            ttk.Entry(self, textvariable=var).pack()
+        self.config_frame = ttk.Frame(self)
+        self.config_frame.pack(pady=10)
 
         ttk.Button(self, text="Save", command=self.save_profile).pack(pady=10)
         ttk.Button(self, text="Cancel", command=self.cancel).pack(pady=10)
-    
+        
+    def update_bot_config_ui(self, event=None):
+        # Clear current config widgets
+        for widget in self.current_config_widgets:
+            widget.destroy()
+        self.current_config_widgets.clear()
+        self.param_vars.clear()
+        self.reward_vars.clear()
+
+        bot_type = self.bot_type_entry.get()
+
+        if bot_type not in bot_configs:
+            return
+
+        config = bot_configs[bot_type]
+
+        # Handle params
+        if "params" in config:
+            for param_name, param_key in config["params"].items():
+                label = ttk.Label(self.config_frame, text=f"{param_name}:")
+                label.pack()
+                var = tk.StringVar()
+                entry = ttk.Entry(self.config_frame, textvariable=var)
+                entry.pack()
+                self.current_config_widgets.extend([label, entry])
+                self.param_vars[param_key] = var
+
+
+
+        # Handle rewards
+        if "rewards" in config:
+            label = ttk.Label(self.config_frame, text="Reward Configuration:")
+            label.pack()
+            self.current_config_widgets.append(label)
+            for reward_key, default_value in config["rewards"].items():
+                reward_label = ttk.Label(self.config_frame, text=reward_key)
+                reward_label.pack()
+                var = tk.StringVar(value=default_value)
+                reward_entry = ttk.Entry(self.config_frame, textvariable=var)
+                reward_entry.pack()
+                self.current_config_widgets.extend([reward_label, reward_entry])
+                self.reward_vars[reward_key] = var
+
+
     def load_profile(self, profile=None):
         self.profile = profile
         if profile:
             self.profile_name_entry.delete(0, tk.END)
             self.profile_name_entry.insert(0, profile.name)
             self.bot_type_entry.set(profile.bot_type)
+            self.update_bot_config_ui()
 
             if profile.config:
-                self.learning_rate_entry.delete(0, tk.END)
-                self.learning_rate_entry.insert(0, profile.config.learning_rate)
-                self.discount_factor_entry.delete(0, tk.END)
-                self.discount_factor_entry.insert(0, profile.config.discount_factor)
+                for param_key, var in self.param_vars.items():
+                    var.set(getattr(profile.config, param_key, ""))
 
             if profile.reward_config:
-                for reward, var in self.rewards.items():
-                    var.set(profile.reward_config.reward_modifiers.get(reward, ""))
+                for reward_key, var in self.reward_vars.items():
+                    var.set(profile.reward_config.reward_modifiers.get(reward_key, ""))
 
     def save_profile(self):
         profile_name = self.profile_name_entry.get()
         bot_type = self.bot_type_entry.get()
-        learning_rate = self.learning_rate_entry.get()
-        discount_factor = self.discount_factor_entry.get()
-        rewards_config = {reward: var.get() for reward, var in self.rewards.items()}
 
-
-        if bot_type == "QLearningBot":
-            config = QLearningConfig(float(learning_rate), float(discount_factor))
-        else:
+        if bot_type not in bot_configs:
             messagebox.showerror("Error", f"Unknown bot type: {bot_type}")
             return
-        
+
+        config = bot_configs[bot_type]
+
+        # Extract bot-specific parameters
+        bot_params = {param_key: float(var.get()) for param_key, var in self.param_vars.items()}
+
+        # Extract reward configuration
+        rewards_config = {reward_key: float(var.get()) for reward_key, var in self.reward_vars.items()}
+
+        # Create the appropriate configuration object
+        if bot_type == "QLearningBot":
+            bot_config = QLearningConfig(**bot_params)
+        else:
+            bot_config = None  # Replace with appropriate config class for other bot types
+
         reward_config_obj = RewardConfig()
         reward_config_obj.reward_modifiers.update(rewards_config)
-        
-        self.controller.game_env.setup_new_profile(profile_name, bot_type, config, reward_config_obj)
+
+        # Create a new BotProfile instance and save it
+        profile = BotProfile(
+            name=profile_name,
+            bot_type=bot_type,
+            config=bot_config,
+            reward_config=reward_config_obj,
+            statistics=BotStatistics(),  # Initialize with default statistics
+            bot_specific_data={}  # Add any additional bot-specific data here
+        )
+
+        self.controller.game_env.setup_new_profile(profile_name, bot_type, bot_config, reward_config_obj)
+
         # Initialize the mazes.json file
         profile_dir = f"profiles/{profile_name}"
         os.makedirs(profile_dir, exist_ok=True)
@@ -198,9 +244,11 @@ class CreateEditProfileFrame(tk.Frame):
         with open(maze_data_path, 'w') as f:
             json.dump(initial_data, f, indent=4)
 
-        #messagebox.showinfo("Profile Saved", "Profile has been saved.")
+        # Notify the user
+        messagebox.showinfo("Profile Saved", "Profile has been saved.")
 
-        self.controller.frames["ProfileManagementFrame"].load_profiles()  # Update the profile list
+        # Update profile lists in other frames
+        self.controller.frames["ProfileManagementFrame"].load_profiles()
         self.controller.frames["VisualizationFrame"].load_profiles()
         self.controller.frames["BotTrainingFrame"].load_profiles()
 
